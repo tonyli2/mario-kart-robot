@@ -1,16 +1,20 @@
 #include <Arduino.h>
 
+#define LEFT_READ_PIN PA0
+#define RIGHT_READ_PIN PA1
+
 // Define PID constants
 double Kp = 1.0;  // Proportional gain
 double Ki = 0.2;  // Integral gain
 double Kd = 0.1;  // Derivative gain
 
 // Define PID variables
-double setpoint = 0;  // Desired value
-double input = 0;     // Current value
-double output = 0;    // Output value
+double setpoint = 0;   // Desired value
+double leftInput = 0;  // Current left-wheel reading
+double rightInput = 0; // Current right-wheel reading
+double output = 0;     // Output value
 
-// Define variables for PID calculation
+// Define variables for calculation
 double error = 0;            // Error term
 double previousError = 0;    // Previous error term
 double integral = 0;         // Integral term
@@ -24,7 +28,8 @@ void setup() {
   Serial.begin(9600);
 
   // Set the initial values
-  input = analogRead(A0);  // Read the current value from analog pin A0
+  leftInput = analogRead(LEFT_READ_PIN);  // Read the current value from left wheel
+  rightInput = analogRead(RIGHT_READ_PIN); // Read the current value from right wheel
 
   // Set the output range if necessary
   // For example, if you're using a PWM pin, you can set the output range using analogWriteRange()
@@ -39,10 +44,10 @@ void loop() {
   // Check if the sample time has passed
   if (elapsedTime >= sampleTime) {
     // Read the current value
-    input = analogRead(A0);
+    leftInput = analogRead(A0);
 
     // Calculate the error term
-    error = setpoint - input;
+    // error = setpoint - input;
 
     // Calculate the integral term
     integral += error * elapsedTime;
@@ -63,7 +68,7 @@ void loop() {
 
     // Print the values for debugging
     Serial.print("Input: ");
-    Serial.print(input);
+    // Serial.print(input);
     Serial.print(" Output: ");
     Serial.print(output);
     Serial.println();
