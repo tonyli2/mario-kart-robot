@@ -14,15 +14,15 @@
 Adafruit_SSD1306 display_handler(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 //Testing variables
-int counter = 0;
-float L_THRESHOLD = 600;
-float R_THRESHOLD = 600;
+uint32_t counter = 0;
+float_t L_THRESHOLD = 600;
+float_t R_THRESHOLD = 600;
 Servo servo;
-short previousError = 0;
+int16_t previousError = 0;
 
-short func(double left, double right);
+int16_t func(float_t left, float_t right);
 
-short func(double left, double right){
+int16_t func(float_t left, float_t right){
     /*
       -1: Left is off tape
       0: both on tape
@@ -50,22 +50,22 @@ short func(double left, double right){
     }
 }
 
-String processOutput(double output) {
+String processOutput(float_t output) {
 
     //Limits output angle
-    if(output > 50){
-      output = 50;
+    if(output > 50.0f){
+      output = 50.0f;
     }
-    else if(output < -50){
-      output = -50;
+    else if(output < -50.0f){
+      output = -50.0f;
     }
 
     //Process servo angle from PID output
-    if(output < 0){
+    if(output < 0.0f){
       servo.write(90 - output);
       return "OFunc: Turn right";
     }
-    else if(output > 0){
+    else if(output > 0.0f){
       servo.write(90 - output);
       return "OFunc: Turn left";
     }
@@ -92,8 +92,9 @@ void setup()
 
 void loop()
 {
-    //OledDisplay::display(DigitalPID::applyPID());
-    //OledDisplay::display(counter++);
+  display_handler.clearDisplay();
+  display_handler.println(DigitalPID::applyPID());
+  display_handler.println(counter++);
 
     // for(int i = 45; i < 130; i++) {
     //     display_handler.clearDisplay();
@@ -120,31 +121,33 @@ void loop()
     // display_handler.display();
     // delay(1000);
 
-    float left = analogRead(LEFT_TAPE_PIN);
-    float right = analogRead(RIGHT_TAPE_PIN);
+    // float_t left = analogRead(LEFT_TAPE_PIN);
+    // float_t right = analogRead(RIGHT_TAPE_PIN);
 
-    display_handler.clearDisplay();
-    display_handler.setTextSize(1);
-    display_handler.setTextColor(SSD1306_WHITE);
-    display_handler.setCursor(0, 0);
-    display_handler.print("Left: ");
-    display_handler.println(left);
-    display_handler.print("Right: ");
-    display_handler.println(right);
+    // display_handler.clearDisplay();
+    // display_handler.setTextSize(1);
+    // display_handler.setTextColor(SSD1306_WHITE);
+    // display_handler.setCursor(0, 0);
+    // display_handler.print("Left: ");
+    // display_handler.println(left);
+    // display_handler.print("Right: ");
+    // display_handler.println(right);
 
-    short error = func(left,right);
+    // int16_t error = func(left,right);
 
-    double derivative = (error - previousError) / 100;
+    // float_t derivative = (error - previousError) / 100;
 
-    double output = 50* error + 5 * derivative;
-    display_handler.print("Error:");
-    display_handler.println(error);
-    display_handler.print("Output:");
-    display_handler.println(output);
-    display_handler.println(processOutput(output));
-    display_handler.println(counter++);
-    DriverMotors::startMotorsForward(50);
-    display_handler.println("Duty CyclE: 50");
+    // float_t output = 50.0f * error + 5.0f * derivative;
+    // display_handler.print("Error:");
+    // display_handler.println(error);
+    // display_handler.print("Output:");
+    // display_handler.println(output);
+    // display_handler.println(processOutput(output));
+    // display_handler.println(counter++);
+  int8_t duty_cycle = 50;
+  DriverMotors::startMotorsForward(duty_cycle);
+  String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+  display_handler.println(duty_cycle_print);
 
     // if(left > L_THRESHOLD && right < R_THRESHOLD){
     //   //Left is off tape and Right is on tape
@@ -169,7 +172,7 @@ void loop()
         counter = 0;
     }
 
-    previousError = error;
+    // previousError = error;
     display_handler.display();
     
 }

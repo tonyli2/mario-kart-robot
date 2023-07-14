@@ -1,4 +1,9 @@
 namespace DigitalPID {
+    struct pid {
+        const float_t Kp;
+        const float_t Ki;
+        const float_t Kd;
+    };
 
     void setupServo();
 

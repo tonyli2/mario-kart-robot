@@ -11,9 +11,11 @@ namespace DigitalPID {
   Servo servo;
 
   // Define constants
-  const float Kp = 5.0;  // Proportional gain
-  const float Ki = 0;  // Integral gain
-  const float Kd = 0;  // Derivative gain
+  pid cons = {
+    .Kp = 50.0f,
+    .Ki = 0.0f,
+    .Kd = 5.0f,
+  };
   float L_THRESHOLD = 600;  // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
   float R_THRESHOLD = 600;
   const u_int8_t STRAIGHT_ANGLE = 90; //90 degrees for servo is straight forward
@@ -33,11 +35,10 @@ namespace DigitalPID {
 
   // Define time variables
   uint64_t previousTime = 0;  // Previous time for derivative calculation
-  uint64_t sampleTime = 100;  // Sample time in milliseconds
 
   //Angle variables
-  const u_int8_t MAX_ANGLE = 50;
-  const u_int8_t MIN_ANGLE = -50;
+  const int8_t MAX_ANGLE =  50;
+  const int8_t MIN_ANGLE = -50;
 
   /*
     @brief attaches servo to specified pin
@@ -57,40 +58,36 @@ namespace DigitalPID {
     uint64_t currentTime = millis();
     uint64_t elapsedTime = currentTime - previousTime;
 
-    // Check if the sample time has passed
-    if (elapsedTime >= sampleTime) {
+    // Read the current value (Low on Tape, High elsewhere)
+    leftInput = analogRead(LEFT_TAPE_PIN);
+    rightInput = analogRead(RIGHT_TAPE_PIN);
 
-      // Read the current value (Low on Tape, High elsewhere)
-      leftInput = analogRead(LEFT_TAPE_PIN);
-      rightInput = analogRead(RIGHT_TAPE_PIN);
+    // Calculate the error term
+    // TODO: interrupt with IR when not seeing tape
+    error = calcError(leftInput, rightInput);
 
-      // Calculate the error term
-      // TODO: interrupt with IR when not seeing tape
-      error = calcError(leftInput, rightInput);
-
-      // Calculate the integral term
-      integral += error * elapsedTime;
-      // We want to cap out integral contribution in case we have constant error
-      if(integral > MAX_INTEGRAL){
-        integral = MAX_INTEGRAL;
-      }
-      else if (integral < -1 * MAX_INTEGRAL){
-        integral = -1 * MAX_INTEGRAL;
-      }
-
-      // Calculate the derivative term
-      double derivative = (error - previousError) / elapsedTime;
-
-      // Calculate the PID output
-      output = Kp * error + Ki * integral + Kd * derivative;
-
-      // Update the previous error and time for the next iteration
-      previousError = error;
-      previousTime = currentTime;
-
-      // Apply the output (e.g. turn servo)
-      return processOutput(output);
+    // Calculate the integral term
+    integral += error * elapsedTime;
+    // We want to cap out integral contribution in case we have constant error
+    if(integral > MAX_INTEGRAL){
+      integral = MAX_INTEGRAL;
     }
+    else if (integral < MIN_ANGLE){
+      integral = MIN_ANGLE;
+    }
+
+    // Calculate the derivative term
+    double derivative = (error - previousError) / elapsedTime;
+
+    // Calculate the PID output
+    output = cons.Kp * error + cons.Ki * integral + cons.Kd * derivative;
+
+    // Update the previous error and time for the next iteration
+    previousError = error;
+    previousTime = currentTime;
+
+    // Apply the output (e.g. turn servo)
+    return processOutput(output);
   }
 
   /*
