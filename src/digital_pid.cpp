@@ -3,47 +3,42 @@
 #include <digital_pid.h>
 #include <Servo.h>
 #include <Adafruit_SSD1306.h>
+#include <driver_motors.h>
 
 namespace DigitalPID {
-
   
-  //Define Servo
+  // Define Servo
   Servo servo;
 
-  // Define constants
-  pid cons = {
-    .Kp = 50.0f,
-    .Ki = 0.0f,
-    .Kd = 5.0f,
+  // Initializing PID controller
+  PID pid = {
+    .Kp                 = 40.0f,
+    .Ki                 = 0.0f,
+    .Kd                 = 10.0f,
+    .L_THRESHOLD        = 600.0f,   // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
+    .R_THRESHOLD        = 600.0f,   // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
+                                    // On white approx 600
+                                    // On black approx 350-450
+    .STRAIGHT_ANGLE     = 90,       // 90 degrees for servo is straight forward
+    .MAX_INTEGRAL       = 100.0f,
+    .leftInput          = 0.0f,     // Current left-wheel reading
+    .rightInput         = 0.0f,     // Current right-wheel reading
+    .error              = 0.0f,     // PID proportional term
+    .prevError          = 0.0f,     // Previous error for derivative term
+    .derivative         = 0.0f,     // PID derivative term
+    .integral           = 0.0f,     // PID integral term
+    .output             = 0.0f,     // PID output
+    .currTime           = 0,
+    .prevTime           = 0,
+    .dt                 = 0,
+    .MAX_ANGLE          = 50,
+    .MIN_ANGLE          = -50,
   };
-  float L_THRESHOLD = 600;  // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
-  float R_THRESHOLD = 600;
-  const u_int8_t STRAIGHT_ANGLE = 90; //90 degrees for servo is straight forward
-  const float MAX_INTEGRAL = 100;
-  //On white approx 600
-  //On black approx 350-450
-
-  // Define PID variables
-  double leftInput = 0;  // Current left-wheel reading
-  double rightInput = 0; // Current right-wheel reading
-  double output = 0;     // Output value
-
-  // Define variables for calculation
-  short error = 0;          // Current error term
-  short previousError = 0;  // Previous error term
-  double integral = 0;      // Integral term
-
-  // Define time variables
-  uint64_t previousTime = 0;  // Previous time for derivative calculation
-
-  //Angle variables
-  const int8_t MAX_ANGLE =  50;
-  const int8_t MIN_ANGLE = -50;
 
   /*
     @brief attaches servo to specified pin
   */
-  void setupServo(){
+  void setupServo() {
     servo.attach(STEERING_SERVO);
   }
 
@@ -52,48 +47,50 @@ namespace DigitalPID {
     converts sensor inputs to servo angles
   */
 
-  //TODO change return type back to void?
+  // TODO: change return type back to void?
   String applyPID() {
     // Calculate the elapsed time since the last iteration
-    uint64_t currentTime = millis();
-    uint64_t elapsedTime = currentTime - previousTime;
+    pid.currTime = millis();
+    pid.dt = pid.currTime - pid.prevTime;
 
     // Read the current value (Low on Tape, High elsewhere)
-    leftInput = analogRead(LEFT_TAPE_PIN);
-    rightInput = analogRead(RIGHT_TAPE_PIN);
+    pid.leftInput = analogRead(LEFT_TAPE_PIN);
+    pid.rightInput = analogRead(RIGHT_TAPE_PIN);
 
     // Calculate the error term
     // TODO: interrupt with IR when not seeing tape
-    error = calcError(leftInput, rightInput);
+    calcError(&pid.leftInput, &pid.rightInput);
 
     // Calculate the integral term
-    integral += error * elapsedTime;
+    pid.integral += pid.error * pid.dt;
     // We want to cap out integral contribution in case we have constant error
-    if(integral > MAX_INTEGRAL){
-      integral = MAX_INTEGRAL;
+    if(pid.integral > pid.MAX_INTEGRAL) {
+      pid.integral = pid.MAX_INTEGRAL;
     }
-    else if (integral < MIN_ANGLE){
-      integral = MIN_ANGLE;
+    else if (pid.integral < pid.MIN_ANGLE) {
+      pid.integral = pid.MIN_ANGLE;
     }
 
     // Calculate the derivative term
-    double derivative = (error - previousError) / elapsedTime;
+    pid.derivative = (pid.error - pid.prevError) / pid.dt;
 
     // Calculate the PID output
-    output = cons.Kp * error + cons.Ki * integral + cons.Kd * derivative;
+    pid.output = pid.Kp * pid.error + pid.Ki * pid.integral + pid.Kd * pid.derivative;
 
     // Update the previous error and time for the next iteration
-    previousError = error;
-    previousTime = currentTime;
+    pid.prevError = pid.error;
+    pid.prevTime = pid.currTime;
 
     // Apply the output (e.g. turn servo)
-    return processOutput(output);
+    // String *out;
+    return processOutput(&pid.output);
+    // result = out;
   }
 
   /*
     @brief Calculates the error via ADC. Helper function
   */
-  static short calcError(double left, double right){
+  static void calcError(float_t *left, float_t *right) {
     
     /*
       -1: Left is off tape
@@ -102,23 +99,20 @@ namespace DigitalPID {
       2: both off tape
     */
 
-    if(left > L_THRESHOLD && right < R_THRESHOLD){
-      //Left is off tape and Right is on tape
-      //TURN RIGHT
-      return -1;
-    }
-    else if(left < L_THRESHOLD && right > R_THRESHOLD){
-      //left is on tape and Right is off tape
-      //TURN LEFT
-      return 1;
-    }
-    // else if(left > L_THRESHOLD && right > R_THRESHOLD){
-    //   //Left is off tape and Right is off tape
-    //   // TODO Look at previous error state and magnify it
-    //   return previousError * 2;
-    // }
-    else{
-      return 0;
+    if(*left > pid.L_THRESHOLD && *right < pid.R_THRESHOLD) {
+      // Left is off tape and Right is on tape
+      // TURN RIGHT
+      pid.error = -1.0f;
+    } else if(*left < pid.L_THRESHOLD && *right > pid.R_THRESHOLD) {
+      // Left is on tape and Right is off tape
+      // TURN LEFT
+      pid.error = 1.0f;
+    } else if(*left > pid.L_THRESHOLD && *right > pid.R_THRESHOLD) {
+      // Left is off tape and Right is off tape
+      // Look at previous error state and magnify it
+      pid.error = pid.prevError * 2.0f;
+    } else {
+      pid.error = 0.0f;
     }
   }
 
@@ -127,28 +121,37 @@ namespace DigitalPID {
     how the servo needs to move in response. 90 is forwards,
     anything less is a right turn
   */
-  static String processOutput(double output) {
+  static String processOutput(float_t *output) {
 
     //Limits output angle
-    if(output > MAX_ANGLE){
-      output = MAX_ANGLE;
-    }
-    else if(output < MIN_ANGLE){
-      output = MIN_ANGLE;
+    if(*output > pid.MAX_ANGLE) {
+      *output = pid.MAX_ANGLE;
+    } else if(*output < pid.MIN_ANGLE) {
+      *output = pid.MIN_ANGLE;
     }
 
-    //Process servo angle from PID output
-    if(output < 0){
-      servo.write(STRAIGHT_ANGLE + output);
-      return "Turn right (O: " + String(output) + ")";
-    }
-    else if(output > 0){
-      servo.write(STRAIGHT_ANGLE + output);
-      return "Turn left (O: " + String(output) + ")";
-    }
-    else {
-      servo.write(STRAIGHT_ANGLE + output);
-      return "Go straight (O: " + String(output) + ")";
+    // Process servo angle from PID output
+    if(*output < 0) {
+      int8_t duty_cycle = 0;
+      DriverMotors::startMotorsForward(duty_cycle);
+      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+      // display_handler.println(duty_cycle_print);
+      servo.write(pid.STRAIGHT_ANGLE - *output);
+      return "Turn right (O: " + String(*output) + ")";
+    } else if(*output > 0) {
+      int8_t duty_cycle = 0;
+      DriverMotors::startMotorsForward(duty_cycle);
+      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+      // display_handler.println(duty_cycle_print);
+      servo.write(pid.STRAIGHT_ANGLE - *output);
+      return "Turn left (O: " + String(*output) + ")";
+    } else {
+      int8_t duty_cycle = 0;
+      DriverMotors::startMotorsForward(duty_cycle);
+      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+      // display_handler.println(duty_cycle_print);
+      servo.write(pid.STRAIGHT_ANGLE + *output);
+      return "Go straight (O: " + String(*output) + ")";
     }
   }
 }
