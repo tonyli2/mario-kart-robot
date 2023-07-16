@@ -1,5 +1,8 @@
+#include <Servo.h>
+
 namespace DigitalPID {
     struct PID {
+        Servo servo;
         const float_t Kp;
         const float_t Ki;
         const float_t Kd;
@@ -23,9 +26,9 @@ namespace DigitalPID {
 
     void setupServo();
 
-    String applyPID();
+    String applySteeringPID();
 
-    static void calcError(float_t *left, float_t *right);
+    static void calcSteeringError(float_t *left, float_t *right);
 
-    static String processOutput(float_t *output);
+    static String processSteeringOutput(float_t *output);
 }

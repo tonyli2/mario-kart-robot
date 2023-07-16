@@ -8,29 +8,31 @@
 #include <config.h>
 #include <digital_pid.h>
 #include <driver_motors.h>
-
+#include <sensor_fusion.h>
 
 // Set up screen dimensions
 Adafruit_SSD1306 display_handler(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-//Testing variables
+// Testing variables
 uint32_t counter = 0;
-// float_t L_THRESHOLD = 600;
-// float_t R_THRESHOLD = 600;
-// Servo servo;
-// int16_t previousError = 0;
+
+void printIMU(float_t *attitude);
 
 void setup() {   
-  //setup servo
+  // Set up servo
   DigitalPID::setupServo();
-  // servo.attach(STEERING_SERVO);
 
-  //setup Oled
-  //OledDisplay::setupDisplay();
+  // Set up OLED
   display_handler.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display_handler.display();
   display_handler.setTextSize(1);
   display_handler.setTextColor(SSD1306_WHITE);
+
+  int8_t IMUReady = SensorFusion::IMUInit();
+  if (IMUReady > 0) {
+    display_handler.println("IMU READY!!!");
+    delay(1000);
+  }
 
   delay(1000);
 }
@@ -38,10 +40,12 @@ void setup() {
 void loop() {
   display_handler.clearDisplay();
   display_handler.setCursor(0, 0);
-  // String *result;
-  // DigitalPID::applyPID(result);
-  display_handler.println(DigitalPID::applyPID());
+  display_handler.println(DigitalPID::applySteeringPID());
   display_handler.println(counter++);
+
+  float_t attitude[3];
+  SensorFusion::IMUGetData(attitude);
+  printIMU(attitude);
 
   // for(int i = 45; i < 130; i++) {
   //     display_handler.clearDisplay();
@@ -116,8 +120,16 @@ void loop() {
       counter = 0;
   }
 
-  // previousError = error;
   display_handler.display();
   
   delay(50);
+}
+
+void printIMU(float_t *attitude) {
+  display_handler.println("Roll:");
+  display_handler.println(attitude[0]);
+  display_handler.println("Pitch:");
+  display_handler.println(attitude[1]);
+  display_handler.println("Yaw:");
+  display_handler.println(attitude[2]);
 }
