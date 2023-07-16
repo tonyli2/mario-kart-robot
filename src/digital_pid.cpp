@@ -11,19 +11,17 @@ namespace DigitalPID {
     .Kp                 = 40.0f,
     .Ki                 = 0.0f,
     .Kd                 = 10.0f,
-    .L_THRESHOLD        = 600.0f,   // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
-    .R_THRESHOLD        = 600.0f,   // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
-                                    // On white approx 600
-                                    // On black approx 350-450
-    .STRAIGHT_ANGLE     = 90,       // 90 degrees for servo is straight forward
+    .L_THRESHOLD        = 600.0f,
+    .R_THRESHOLD        = 600.0f,
+    .STRAIGHT_ANGLE     = 90,
     .MAX_INTEGRAL       = 100.0f,
-    .leftInput          = 0.0f,     // Current left-wheel reading
-    .rightInput         = 0.0f,     // Current right-wheel reading
-    .error              = 0.0f,     // PID proportional term
-    .prevError          = 0.0f,     // Previous error for derivative term
-    .derivative         = 0.0f,     // PID derivative term
-    .integral           = 0.0f,     // PID integral term
-    .output             = 0.0f,     // PID output
+    .leftInput          = 0.0f,
+    .rightInput         = 0.0f,
+    .error              = 0.0f,
+    .prevError          = 0.0f,
+    .derivative         = 0.0f,
+    .integral           = 0.0f,
+    .output             = 0.0f,
     .currTime           = 0,
     .prevTime           = 0,
     .dt                 = 0,
@@ -31,20 +29,21 @@ namespace DigitalPID {
     .MIN_ANGLE          = -50,
   };
 
-  /*
-    @brief attaches servo to specified pin
-  */
+  /**
+   * @brief Attaching servo to the specified pin
+   * 
+   */
   void setupServo() {
     steering_pid.servo.attach(STEERING_SERVO);
     // TODO: set up servo for IR sensor
   }
 
-  /*
-    @brief Applies PID calculations and 
-    converts sensor inputs to servo angles
-  */
-
-  // TODO: change return type back to void?
+  /**
+   * @brief Applying PID calculations and converting sensor inputs to servo angles
+   * @return Turning direction and PID output in string form
+   * 
+   * @note Might change return type to void once finishing PID tunning
+   */
   String applySteeringPID() {
     // Calculate the elapsed time since the last iteration
     steering_pid.currTime = millis();
@@ -60,7 +59,7 @@ namespace DigitalPID {
 
     // Calculate the integral term
     steering_pid.integral += steering_pid.error * steering_pid.dt;
-    // We want to cap out integral contribution in case we have constant error
+    // Limit integral contribution in case we have constant error
     if(steering_pid.integral > steering_pid.MAX_INTEGRAL) {
       steering_pid.integral = steering_pid.MAX_INTEGRAL;
     } else if (steering_pid.integral < steering_pid.MIN_ANGLE) {
@@ -78,21 +77,21 @@ namespace DigitalPID {
     steering_pid.prevTime = steering_pid.currTime;
 
     // Apply the output (e.g. turn servo)
-    // String *out;
     return processSteeringOutput(&steering_pid.output);
-    // result = out;
   }
 
-  /*
-    @brief Calculates the error via ADC. Helper function
-  */
+  /**
+   * @brief Helper function to calculate the error via ADC
+   * @param[in] left Left tape sensor analog reading
+   * @param[in] right Right tape sensor analog reading
+   */
   static void calcSteeringError(float_t *left, float_t *right) {
     
     /*
       -1: Left is off tape
-      0: both on tape
-      1: right is on tape
-      2: both off tape
+       0: both on tape
+       1: right is on tape
+       2: both off tape
     */
 
     if(*left > steering_pid.L_THRESHOLD && *right < steering_pid.R_THRESHOLD) {
@@ -108,15 +107,19 @@ namespace DigitalPID {
       // Look at previous error state and magnify it
       steering_pid.error = steering_pid.prevError * 2.0f;
     } else {
+      // Both are on the tape
+      // Go straight
       steering_pid.error = 0.0f;
     }
   }
 
-  /*
-    @brief Processes the PID calculated output and determines
-    how the servo needs to move in response. 90 is forwards,
-    anything less is a right turn
-  */
+  /**
+   * @brief Processing the PID output and determining how the servo needs to move in response
+   * @param[in] output PID output
+   * @return Turning direction and PID output in string form
+   * 
+   * @note 90 is forwards, anything less is a right turn, vice versa for left turn
+   */
   static String processSteeringOutput(float_t *output) {
 
     //Limits output angle
