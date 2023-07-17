@@ -16,7 +16,7 @@ Adafruit_SSD1306 display_handler(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET)
 // Testing variables
 uint32_t counter = 0;
 
-void printIMU(float_t *attitude);
+void printIMU(SensorFusion::IMUSensor *sensor);
 
 void setup() {   
   // Set up servo
@@ -34,6 +34,7 @@ void setup() {
     delay(1000);
   }
 
+  display_handler.display();
   delay(1000);
 }
 
@@ -43,9 +44,9 @@ void loop() {
   display_handler.println(DigitalPID::applySteeringPID());
   display_handler.println(counter++);
 
-  float_t attitude[3];
-  SensorFusion::IMUGetData(attitude);
-  printIMU(attitude);
+  SensorFusion::IMUSensor *sensor;
+  sensor = SensorFusion::IMUGetData();
+  printIMU(sensor);
 
   // for(int i = 45; i < 130; i++) {
   //     display_handler.clearDisplay();
@@ -125,11 +126,11 @@ void loop() {
   delay(50);
 }
 
-void printIMU(float_t *attitude) {
-  display_handler.println("Roll:");
-  display_handler.println(attitude[0]);
-  display_handler.println("Pitch:");
-  display_handler.println(attitude[1]);
-  display_handler.println("Yaw:");
-  display_handler.println(attitude[2]);
+void printIMU(SensorFusion::IMUSensor *sensor) {
+  display_handler.print("Roll:");
+  display_handler.println(sensor->theta_final[0]);
+  display_handler.print("Pitch:");
+  display_handler.println(sensor->theta_final[1]);
+  display_handler.print("Yaw:");
+  display_handler.println(sensor->theta_final[2]);
 }

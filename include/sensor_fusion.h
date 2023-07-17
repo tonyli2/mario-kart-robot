@@ -1,5 +1,6 @@
 #include <arm_math.h>
 #include <MPU9250.h>
+#include <Adafruit_SSD1306.h>
 
 #define IMU_VEC_SIZE 3
 
@@ -18,5 +19,5 @@ namespace SensorFusion {
     };
 
     int8_t IMUInit();
-    void IMUGetData(float_t *out);
+    IMUSensor * IMUGetData();
 }

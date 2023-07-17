@@ -56,7 +56,7 @@ namespace SensorFusion {
      * @note Complementary Filter algorithem is used for sensor fusion
      * @cite https://ahrs.readthedocs.io/en/latest/filters/complementary.html
      */
-    void IMUGetData(float_t *out) {
+    IMUSensor * IMUGetData() {
         IMU.readSensor();
 
         // Extract IMU data
@@ -71,27 +71,27 @@ namespace SensorFusion {
         sensor.mag_z = IMU.getMagZ_uT();
 
         // Compute attitude vector using accelerometer and magnetometer
-        sensor.theta_am[0] = atan2(sensor.acc_y, sensor.acc_z);
-        sensor.theta_am[1] = atan2(-sensor.acc_x, sqrt(sensor.acc_y * sensor.acc_y + sensor.acc_z * sensor.acc_z));
+        sensor.theta_am[0] = atan2(sensor.acc_x, sqrt(sensor.acc_y * sensor.acc_y + sensor.acc_z * sensor.acc_z));
+        sensor.theta_am[1] = -atan2(sensor.acc_y, sqrt(sensor.acc_x * sensor.acc_x + sensor.acc_z * sensor.acc_z));
 
         sensor.b_x = sensor.mag_x * cos(sensor.theta_am[0]) + sensor.mag_y * sin(sensor.theta_am[0]) * sin(sensor.theta_am[1]) + sensor.mag_z * sin(sensor.theta_am[0]) * cos(sensor.theta_am[1]);
         sensor.b_y = sensor.mag_y * cos(sensor.theta_am[1]) - sensor.mag_z * sin(sensor.theta_am[1]);
         
         sensor.theta_am[2] = atan2(-sensor.b_y, sensor.b_x);
 
-        // Compute attitude vector using gyroscope
-        sensor.theta_w[0] = IMU.getRollAngle_rad();
-        sensor.theta_w[1] = IMU.getPitchAngle_rad();
+        // Compute attitude vector using gyroscope (only yaw angle)
+        sensor.theta_w[0] = sensor.theta_am[0];
+        sensor.theta_w[1] = sensor.theta_am[1];
         sensor.theta_w[2] = IMU.getYawAngle_rad();
 
         // Fusing two attitude vectors into finalized attitude vector in unit degree
-        sensor.alpha_w = 0.9f;
+        sensor.alpha_w = 0.93f;
         sensor.alpha_am = 1.0f - sensor.alpha_w;
         arm_scale_f32(sensor.theta_w, sensor.alpha_w, sensor.theta_w_new, IMU_VEC_SIZE);
         arm_scale_f32(sensor.theta_am, sensor.alpha_am, sensor.theta_am_new, IMU_VEC_SIZE);
         arm_add_f32(sensor.theta_w_new, sensor.theta_am_new, sensor.theta_final, IMU_VEC_SIZE);
         arm_scale_f32(sensor.theta_final, 180 / PI, sensor.theta_final, IMU_VEC_SIZE);
 
-        out = sensor.theta_final;
+        return &sensor;
     }
 }
