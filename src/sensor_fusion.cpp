@@ -51,12 +51,12 @@ namespace SensorFusion {
 
     /**
      * @brief Interpolating vehicle attitude using IMU sensor fusion
-     * @param[out] out Vehicle attitude vector in order of roll, pitch, yaw with unit degree
+     * @return Vehicle attitude vector in order of roll, pitch, yaw with unit degree
      * 
      * @note Complementary Filter algorithem is used for sensor fusion
      * @cite https://ahrs.readthedocs.io/en/latest/filters/complementary.html
      */
-    IMUSensor * IMUGetData() {
+    float_t * IMUGetData() {
         IMU.readSensor();
 
         // Extract IMU data
@@ -92,6 +92,6 @@ namespace SensorFusion {
         arm_add_f32(sensor.theta_w_new, sensor.theta_am_new, sensor.theta_final, IMU_VEC_SIZE);
         arm_scale_f32(sensor.theta_final, 180 / PI, sensor.theta_final, IMU_VEC_SIZE);
 
-        return &sensor;
+        return sensor.theta_final;
     }
 }

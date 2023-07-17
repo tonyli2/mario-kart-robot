@@ -19,5 +19,5 @@ namespace SensorFusion {
     };
 
     int8_t IMUInit();
-    IMUSensor * IMUGetData();
+    float_t * IMUGetData();
 }
