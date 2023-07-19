@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <driver_motors.h>
 #include <config.h>
 

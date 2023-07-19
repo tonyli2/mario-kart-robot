@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <config.h>
 #include <digital_pid.h>
 #include <Adafruit_SSD1306.h>

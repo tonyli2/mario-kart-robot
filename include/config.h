@@ -1,3 +1,4 @@
+#include <Arduino.h>
 /*
     This header file contains all the constants
     corresponding to the pins used

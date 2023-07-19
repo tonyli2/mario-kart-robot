@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <location_identifier.h>
 #include <config.h>
 
