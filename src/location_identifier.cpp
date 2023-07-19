@@ -19,19 +19,23 @@ namespace LocationIdentifier {
         leftTapeSens = analogRead(LEFT_TAPE_PIN);
         rightTapeSens = analogRead(RIGHT_TAPE_PIN);
 
-        if(leftMarker < LM_THRESHOLD && rightMarker < RM_THRESHOLD && isGoingUpRamp){
+        bool readyToJump = leftMarker < LM_THRESHOLD && rightMarker < RM_THRESHOLD &&
+            leftTapeSens <  LM_THRESHOLD && rightTapeSens < RM_THRESHOLD
+            && isGoingUpRamp;
+
+        bool hitsLeftMarker = leftMarker < LM_THRESHOLD && rightMarker > RM_THRESHOLD &&
+            leftTapeSens <  LM_THRESHOLD && rightTapeSens < RM_THRESHOLD
+            && !isGoingUpRamp;
+
+        if(readyToJump){
             // Robot has now gone up the ramp and is ready to jump 
             // Reset upRamp marker
             isGoingUpRamp = false;
         }
-        else if(leftMarker < LM_THRESHOLD && rightMarker > RM_THRESHOLD){
+        else if(hitsLeftMarker){
             // Robot hits single left-marker while approaching the up-ramp
             isGoingUpRamp = true;
         }
-
-        bool readyToJump = leftMarker < LM_THRESHOLD && rightMarker < RM_THRESHOLD &&
-                leftTapeSens <  LM_THRESHOLD && rightTapeSens < RM_THRESHOLD
-                && isGoingUpRamp;
 
         return readyToJump;
     }
