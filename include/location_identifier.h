@@ -2,13 +2,13 @@
 
 namespace LocationIdentifier {
 
-    float_t leftMarker = 0.0f;
-    float_t rightMarker = 0.0f;
-    float_t leftTapeSens = 0.0f;
-    float_t rightTapeSens = 0.0f;
-    const float_t LM_THRESHOLD = 600.0f;
-    const float_t RM_THRESHOLD = 600.0f;
-    bool isGoingUpRamp = false;
+    extern float_t leftMarker;
+    extern float_t rightMarker;
+    extern float_t leftTapeSens;
+    extern float_t rightTapeSens;
+    extern const float_t LM_THRESHOLD;
+    extern const float_t RM_THRESHOLD;
+    extern bool isGoingUpRamp;
 
     bool isReadyToJump();
 }

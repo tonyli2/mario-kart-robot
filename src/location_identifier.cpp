@@ -1,7 +1,14 @@
-#include <location_identifier.h>
 #include <config.h>
 
 namespace LocationIdentifier {
+
+    float_t leftMarker = 0.0f;
+    float_t rightMarker = 0.0f;
+    float_t leftTapeSens = 0.0f;
+    float_t rightTapeSens = 0.0f;
+    const float_t LM_THRESHOLD = 600.0f;
+    const float_t RM_THRESHOLD = 600.0f;
+    bool isGoingUpRamp = false;
 
     /**
      * @brief determines whether the robot has detected the tape marker that
@@ -19,20 +26,26 @@ namespace LocationIdentifier {
         leftTapeSens = analogRead(LEFT_TAPE_PIN);
         rightTapeSens = analogRead(RIGHT_TAPE_PIN);
 
-        bool readyToJump = leftMarker < LM_THRESHOLD && rightMarker < RM_THRESHOLD &&
-            leftTapeSens <  LM_THRESHOLD && rightTapeSens < RM_THRESHOLD
-            && isGoingUpRamp;
+        bool readyToJump = 
+            leftMarker < LM_THRESHOLD && 
+            rightMarker < RM_THRESHOLD &&
+            leftTapeSens < LM_THRESHOLD &&
+            rightTapeSens < RM_THRESHOLD &&
+            isGoingUpRamp;
 
-        bool hitsLeftMarker = leftMarker < LM_THRESHOLD && rightMarker > RM_THRESHOLD &&
-            leftTapeSens <  LM_THRESHOLD && rightTapeSens < RM_THRESHOLD
-            && !isGoingUpRamp;
+        bool reachedRampStart = 
+            leftMarker < LM_THRESHOLD && 
+            rightMarker > RM_THRESHOLD &&
+            leftTapeSens <  LM_THRESHOLD &&
+            rightTapeSens < RM_THRESHOLD &&
+            !isGoingUpRamp;
 
         if(readyToJump){
             // Robot has now gone up the ramp and is ready to jump 
             // Reset upRamp marker
             isGoingUpRamp = false;
-        }
-        else if(hitsLeftMarker){
+        } 
+        else if(reachedRampStart){
             // Robot hits single left-marker while approaching the up-ramp
             isGoingUpRamp = true;
         }

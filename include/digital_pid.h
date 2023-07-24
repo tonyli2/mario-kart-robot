@@ -26,8 +26,8 @@ namespace DigitalPID {
         const int8_t MIN_ANGLE;         // Servo min turning angle
     };
 
-    void setupServo();
-    String applySteeringPID();
-    static void calcSteeringError(float_t *left, float_t *right);
-    static String processSteeringOutput(float_t *output);
+    void setupServo(PID *pidType);
+    String applyPID(PID *pidType);
+    static void calcError(float_t *left, float_t *right, PID *pidType);
+    static String processOutput(float_t *output, PID *pidType);
 }

@@ -1,40 +1,13 @@
 #include <config.h>
-#include <digital_pid.h>
-#include <Adafruit_SSD1306.h>
-#include <driver_motors.h>
 
 namespace DigitalPID {
-
-  // Initializing steering PID controller
-  PID steering_pid = {
-    .Kp                 = 40.0f,
-    .Ki                 = 0.0f,
-    .Kd                 = 10.0f,
-    .L_THRESHOLD        = 600.0f,
-    .R_THRESHOLD        = 600.0f,
-    .STRAIGHT_ANGLE     = 90,
-    .MAX_INTEGRAL       = 100.0f,
-    .leftInput          = 0.0f,
-    .rightInput         = 0.0f,
-    .error              = 0.0f,
-    .prevError          = 0.0f,
-    .derivative         = 0.0f,
-    .integral           = 0.0f,
-    .output             = 0.0f,
-    .currTime           = 0,
-    .prevTime           = 0,
-    .dt                 = 0,
-    .MAX_ANGLE          = 50,
-    .MIN_ANGLE          = -50,
-  };
-
+  
   /**
    * @brief Attaching servo to the specified pin
    * 
    */
-  void setupServo() {
-    steering_pid.servo.attach(STEERING_SERVO);
-    // TODO: set up servo for IR sensor
+  void setupServo(PID *pidType) {
+    pidType->servo.attach(STEERING_SERVO);
   }
 
   /**
@@ -43,40 +16,40 @@ namespace DigitalPID {
    * 
    * @note Might change return type to void once finishing PID tunning
    */
-  String applySteeringPID() {
+  String applyPID(PID *pidType) {
     // Calculate the elapsed time since the last iteration
-    steering_pid.currTime = millis();
-    steering_pid.dt = steering_pid.currTime - steering_pid.prevTime;
+    pidType->currTime = millis();
+    pidType->dt = pidType->currTime - pidType->prevTime;
 
     // Read the current value (Low on Tape, High elsewhere)
-    steering_pid.leftInput = analogRead(LEFT_TAPE_PIN);
-    steering_pid.rightInput = analogRead(RIGHT_TAPE_PIN);
+    pidType->leftInput = analogRead(LEFT_TAPE_PIN);
+    pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
 
     // Calculate the error term
     // TODO: interrupt with IR when not seeing tape
-    calcSteeringError(&steering_pid.leftInput, &steering_pid.rightInput);
+    calcError(&(pidType->leftInput), &(pidType->rightInput), pidType);
 
     // Calculate the integral term
-    steering_pid.integral += steering_pid.error * steering_pid.dt;
+    pidType->integral += pidType->error * pidType->dt;
     // Limit integral contribution in case we have constant error
-    if(steering_pid.integral > steering_pid.MAX_INTEGRAL) {
-      steering_pid.integral = steering_pid.MAX_INTEGRAL;
-    } else if (steering_pid.integral < steering_pid.MIN_ANGLE) {
-      steering_pid.integral = steering_pid.MIN_ANGLE;
+    if(pidType->integral > pidType->MAX_INTEGRAL) {
+      pidType->integral = pidType->MAX_INTEGRAL;
+    } else if (pidType->integral < pidType->MIN_ANGLE) {
+      pidType->integral = pidType->MIN_ANGLE;
     }
 
     // Calculate the derivative term
-    steering_pid.derivative = (steering_pid.error - steering_pid.prevError) / steering_pid.dt;
+    pidType->derivative = (pidType->error - pidType->prevError) / pidType->dt;
 
     // Calculate the PID output
-    steering_pid.output = steering_pid.Kp * steering_pid.error + steering_pid.Ki * steering_pid.integral + steering_pid.Kd * steering_pid.derivative;
+    pidType->output = pidType->Kp * pidType->error + pidType->Ki * pidType->integral + pidType->Kd * pidType->derivative;
 
     // Update the previous error and time for the next iteration
-    steering_pid.prevError = steering_pid.error;
-    steering_pid.prevTime = steering_pid.currTime;
+    pidType->prevError = pidType->error;
+    pidType->prevTime = pidType->currTime;
 
     // Apply the output (e.g. turn servo)
-    return processSteeringOutput(&steering_pid.output);
+    return processOutput(&(pidType->output), pidType);
   }
 
   /**
@@ -84,7 +57,7 @@ namespace DigitalPID {
    * @param[in] left Left tape sensor analog reading
    * @param[in] right Right tape sensor analog reading
    */
-  static void calcSteeringError(float_t *left, float_t *right) {
+  static void calcError(float_t *left, float_t *right, PID *pidType) {
     
     /*
       -1: Left is off tape
@@ -93,22 +66,22 @@ namespace DigitalPID {
        2: both off tape
     */
 
-    if(*left > steering_pid.L_THRESHOLD && *right < steering_pid.R_THRESHOLD) {
+    if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
       // Left is off tape and Right is on tape
       // TURN RIGHT
-      steering_pid.error = -1.0f;
-    } else if(*left < steering_pid.L_THRESHOLD && *right > steering_pid.R_THRESHOLD) {
+      pidType->error = -1.0f;
+    } else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
       // Left is on tape and Right is off tape
       // TURN LEFT
-      steering_pid.error = 1.0f;
-    } else if(*left > steering_pid.L_THRESHOLD && *right > steering_pid.R_THRESHOLD) {
+      pidType->error = 1.0f;
+    } else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
       // Left is off tape and Right is off tape
       // Look at previous error state and magnify it
-      steering_pid.error = steering_pid.prevError * 2.0f;
+      pidType->error = pidType->prevError * 2.0f;
     } else {
       // Both are on the tape
       // Go straight
-      steering_pid.error = 0.0f;
+      pidType->error = 0.0f;
     }
   }
 
@@ -119,36 +92,38 @@ namespace DigitalPID {
    * 
    * @note 90 is forwards, anything less is a right turn, vice versa for left turn
    */
-  static String processSteeringOutput(float_t *output) {
+  static String processOutput(float_t *output, PID *pidType) {
+
+    int8_t duty_cycle = 15;
 
     //Limits output angle
-    if(*output > steering_pid.MAX_ANGLE) {
-      *output = steering_pid.MAX_ANGLE;
-    } else if(*output < steering_pid.MIN_ANGLE) {
-      *output = steering_pid.MIN_ANGLE;
+    if(*output > pidType->MAX_ANGLE) {
+      *output = pidType->MAX_ANGLE;
+    } else if(*output < pidType->MIN_ANGLE) {
+      *output = pidType->MIN_ANGLE;
     }
 
     // Process servo angle from PID output
     if(*output < 0) {
-      int8_t duty_cycle = 15;
+      duty_cycle = 15;
       DriverMotors::startMotorsForward(duty_cycle);
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      steering_pid.servo.write(steering_pid.STRAIGHT_ANGLE - *output);
+      pidType->servo.write(pidType->STRAIGHT_ANGLE - *output);
       return "Turn right (O: " + String(*output) + ")";
     } else if(*output > 0) {
-      int8_t duty_cycle = 15;
+      duty_cycle = 15;
       DriverMotors::startMotorsForward(duty_cycle);
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      steering_pid.servo.write(steering_pid.STRAIGHT_ANGLE - *output);
+      pidType->servo.write(pidType->STRAIGHT_ANGLE - *output);
       return "Turn left (O: " + String(*output) + ")";
     } else {
-      int8_t duty_cycle = 40;
+      duty_cycle = 40;
       DriverMotors::startMotorsForward(duty_cycle);
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      steering_pid.servo.write(steering_pid.STRAIGHT_ANGLE + *output);
+      pidType->servo.write(pidType->STRAIGHT_ANGLE + *output);
       return "Go straight (O: " + String(*output) + ")";
     }
   }

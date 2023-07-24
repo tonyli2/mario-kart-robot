@@ -1,4 +1,17 @@
 #include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <Servo.h>
+
+// Custom header files
+#include <fft.h>
+#include <digital_pid.h>
+#include <driver_motors.h>
+#include <sensor_fusion.h>
+#include <hivemind.h>
+#include <jump_handler.h>
+#include <location_identifier.h>
+
 /*
     This header file contains all the constants
     corresponding to the pins used

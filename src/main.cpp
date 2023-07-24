@@ -1,14 +1,4 @@
-#include <Arduino.h>
-#include <Wire.h>
-#include <Adafruit_SSD1306.h>
-#include <Servo.h>
-
-// Custom header files
-#include <fft.h>
 #include <config.h>
-#include <digital_pid.h>
-#include <driver_motors.h>
-#include <sensor_fusion.h>
 
 // Set up screen dimensions
 Adafruit_SSD1306 display_handler(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -18,9 +8,7 @@ uint32_t counter = 0;
 
 void printIMU(float_t *attitude_vec);
 
-void setup() {   
-  // Set up servo
-  DigitalPID::setupServo();
+void setup() {
 
   //Setup Serial Monitor
   Serial.begin(9600);
