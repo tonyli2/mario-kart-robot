@@ -1,6 +1,6 @@
 #include <arduinoFFT.h>
 
-namespace FastFourierTransform {
+namespace FFT {
 
     static const uint16_t SAMPLE = 64;
     static const double samplingFrequency = 10000;
@@ -12,7 +12,6 @@ namespace FastFourierTransform {
     //  (in lab we need to be able to detect at least 1kHz)
 
     // Function definition
-    double_t fft_start(int analogReadPin);
-
-    
+    double_t * runFFT(int readPin);
+    bool hasFoundBeacon(int leftPin, int rightPin);
 }

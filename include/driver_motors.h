@@ -2,11 +2,15 @@
 
 namespace DriverMotors{
 
-    void startMotorsForward(short dutyCycle);
+    void startMotorsForwardRight(short dutyCycle);
 
-    void startMotorsBackward(short dutyCycle);
+    void startMotorsForwardLeft(short dutyCycle);
 
-    void stopMotorsForward();
+    void startMotorsBackwardRight(short dutyCycle);
 
-    void stopMotorsBackward();
+    void startMotorsBackwardLeft(short dutyCycle);
+
+    void stopMotorsRight();
+
+    void stopMotorsLeft();
 }

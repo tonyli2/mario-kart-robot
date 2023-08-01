@@ -39,5 +39,8 @@
 #define STEERING_SERVO                  PA_10
 
 // Motor driving pins (PWM)
-#define DRIVING_PIN_FORWARD             PB_8
-#define DRIVING_PIN_BACKWARD            PB_9
+#define LEFT_DRIVING_FWD                PB_9
+#define LEFT_DRIVING_BKWD               PB_8
+
+#define RIGHT_DRIVING_FWD               PA_6
+#define RIGHT_DRIVING_BKWD              PA_7

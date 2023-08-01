@@ -24,6 +24,7 @@ namespace DigitalPID {
         uint64_t dt;
         const int8_t MAX_ANGLE;         // Servo max turning angle
         const int8_t MIN_ANGLE;         // Servo min turning angle
+        bool isIR;
     };
 
     void setupServo(PID *pidType);
