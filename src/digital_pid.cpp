@@ -69,30 +69,51 @@ namespace DigitalPID {
    */
   static void calcError(float_t *left, float_t *right, PID *pidType) {
     
-    /*
-      -1: Left is off tape
-       0: both on tape
-       1: right is on tape
-       2: both off tape
-    */
+    if (!pidType->isIR) {   // Tape tracking mode
+        /*
+        -1: Left is off tape
+        0: both on tape
+        1: right is off tape
+        2: both off tape
+      */
 
-    if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
-      // Left is off tape and Right is on tape
-      // TURN RIGHT
-      pidType->error = -1.0f;
-    } else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
-      // Left is on tape and Right is off tape
-      // TURN LEFT
-      pidType->error = 1.0f;
-    } else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
-      // Left is off tape and Right is off tape
-      // Look at previous error state and magnify it
-      pidType->error = pidType->prevError * 2.0f;
-    } else {
-      // Both are on the tape
-      // Go straight
-      pidType->error = 0.0f;
+      if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
+        // Left is off tape and Right is on tape
+        // TURN RIGHT
+        pidType->error = -1.0f;
+      } else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
+        // Left is on tape and Right is off tape
+        // TURN LEFT
+        pidType->error = 1.0f;
+      } else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
+        // Left is off tape and Right is off tape
+        // Look at previous error state and magnify it
+        pidType->error = pidType->prevError * 2.0f;
+      } else {
+        // Both are on the tape
+        // Go straight
+        pidType->error = 0.0f;
+      }
+    } else {              // IR tracking mode
+      if (*left - *right > 100) {
+        // Left IR signal is stronger
+        // TURN left
+        pidType->error = 1.0f;
+      } else if (*right - *left > 100) {
+        // Right IR signal is stronger
+        // TURN right
+        pidType->error = -1.0f;
+      } else if (abs(*left - *right) < 100) {
+        // Both IR signals are similar
+        // GO STRAIGHT
+        pidType->error = 0.0f;
+      } else {
+        // Left and right IR signals are both off
+        // Look at previous error state and magnify it
+        pidType->error = pidType->prevError * 2.0f;
+      }
     }
+    
   }
 
   /**

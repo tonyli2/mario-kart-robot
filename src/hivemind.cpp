@@ -70,7 +70,7 @@ namespace Hivemind
     }
 
     void setupHivemind(){
-        DigitalPID::setupServo(&steering_pid);
+        DigitalPID::setupServo(&ir_pid);
     }
 
     void testServo(uint8_t angle){
