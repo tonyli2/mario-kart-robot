@@ -15,7 +15,7 @@ namespace FFT {
     // Index 1: magnitude of strongest frequency
     double_t freqAndMagnitude[] = {0, 0};
 
-    const double_t DEVIATION = 10;
+    const double_t DEVIATION = 20;
     const double_t DESIRED_SIGNAL = 1000.0;
 
     // Timing variables

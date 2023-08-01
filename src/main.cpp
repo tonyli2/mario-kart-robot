@@ -3,50 +3,47 @@
 // Set up screen dimensions
 Adafruit_SSD1306 display_handler(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Testing variables
-uint32_t counter = 0;
-
-void printIMU(float_t *attitude_vec);
 
 void setup() {
+  // pinMode(PC13, OUTPUT);
+  Hivemind::setupHivemind();
 
-  //Setup Serial Monitor
-  Serial.begin(9600);
-
-
-  // Set up OLED
-  // display_handler.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  // display_handler.display();
-  // display_handler.setTextSize(1);
-  // display_handler.setTextColor(SSD1306_WHITE);
-
-  int8_t IMUReady = SensorFusion::IMUInit();
-  if (IMUReady > 0) {
-    display_handler.println("IMU READY!!!");
-    delay(1000);
-  }
-
+  display_handler.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display_handler.setTextSize(1);
+  display_handler.setTextColor(SSD1306_WHITE);
   display_handler.display();
-  delay(1000);
+  delay(100);
 }
 
 void loop() {
 
-  Serial.println(counter++);
+  display_handler.clearDisplay();
+  display_handler.setCursor(0,0);
 
-  if(counter > 1000) {
-      counter = 0;
-  }
+  display_handler.print("Left Freq: ");
+  display_handler.println(String(FFT::runFFT(IR_DETECTOR_LEFT)[0]) + " At " + String(FFT::runFFT(IR_DETECTOR_LEFT)[1]));
+  display_handler.print("Right Freq: ");
+  display_handler.println(String(FFT::runFFT(IR_DETECTOR_RIGHT)[0]) + " At " + String(FFT::runFFT(IR_DETECTOR_RIGHT)[1]));
 
+  display_handler.println(String(FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT)));
+  // display_handler.print("Left Marker: ");
+  // display_handler.println(analogRead(MARKER_SENSE_LEFT));
+  // display_handler.print("Left Tape: ");
+  // display_handler.println(analogRead(LEFT_TAPE_PIN));
+  // display_handler.print("Right Tape: ");
+  // display_handler.println(analogRead(RIGHT_TAPE_PIN));
+  // display_handler.print("Right Marker: ");
+  // display_handler.println(analogRead(MARKER_SENSE_RIGHT));
+  display_handler.display();
+  // Hivemind::testServo(90);
+  Hivemind::testIR();
+  // Hivemind::wakeUpHivemind();
   
-  delay(1000);
-}
+  
+  // digitalWrite(PC13, LOW);
+  // delay(50);
+  // digitalWrite(PC13, HIGH);
+  delay(100);
 
-void printIMU(float_t *attitude_vec) {
-  display_handler.print("Roll:");
-  display_handler.println(attitude_vec[0]);
-  display_handler.print("Pitch:");
-  display_handler.println(attitude_vec[1]);
-  display_handler.print("Yaw:");
-  display_handler.println(attitude_vec[2]);
+  // Hivemind::testServo(90);
 }

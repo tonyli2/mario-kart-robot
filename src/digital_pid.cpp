@@ -22,11 +22,21 @@ namespace DigitalPID {
     pidType->dt = pidType->currTime - pidType->prevTime;
 
     // Read the current value (Low on Tape, High elsewhere)
-    pidType->leftInput = analogRead(LEFT_TAPE_PIN);
-    pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
+    if(!pidType->isIR) {
+      pidType->leftInput = analogRead(LEFT_TAPE_PIN);
+      pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
+    }
+    else { // Otherwise, follow IR beacon, not tape
+
+      // Check to see if 1kHz is found
+      if(FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT)){
+        pidType->leftInput = FFT::runFFT(IR_DETECTOR_LEFT)[1];
+        pidType->rightInput = FFT::runFFT(IR_DETECTOR_RIGHT)[1];
+      }
+
+    }
 
     // Calculate the error term
-    // TODO: interrupt with IR when not seeing tape
     calcError(&(pidType->leftInput), &(pidType->rightInput), pidType);
 
     // Calculate the integral term
@@ -94,37 +104,48 @@ namespace DigitalPID {
    */
   static String processOutput(float_t *output, PID *pidType) {
 
-    int8_t duty_cycle = 15;
+    u_int8_t duty_cycle = 0;
 
     //Limits output angle
-    if(*output > pidType->MAX_ANGLE) {
-      *output = pidType->MAX_ANGLE;
-    } else if(*output < pidType->MIN_ANGLE) {
-      *output = pidType->MIN_ANGLE;
+    if(pidType->STRAIGHT_ANGLE + *output > pidType->MAX_ANGLE) {
+      *output = pidType->MAX_ANGLE - pidType->STRAIGHT_ANGLE;
+    } else if(pidType->STRAIGHT_ANGLE + *output < pidType->MIN_ANGLE) {
+      *output = pidType->MIN_ANGLE - pidType->STRAIGHT_ANGLE;
     }
 
     // Process servo angle from PID output
     if(*output < 0) {
-      duty_cycle = 15;
-      DriverMotors::startMotorsForward(duty_cycle);
-      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
-      // display_handler.println(duty_cycle_print);
-      pidType->servo.write(pidType->STRAIGHT_ANGLE - *output);
-      return "Turn right (O: " + String(*output) + ")";
-    } else if(*output > 0) {
-      duty_cycle = 15;
-      DriverMotors::startMotorsForward(duty_cycle);
-      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
-      // display_handler.println(duty_cycle_print);
-      pidType->servo.write(pidType->STRAIGHT_ANGLE - *output);
-      return "Turn left (O: " + String(*output) + ")";
-    } else {
-      duty_cycle = 40;
-      DriverMotors::startMotorsForward(duty_cycle);
+
+      // duty_cycle = 20;
+      DriverMotors::startMotorsForwardRight(duty_cycle);
+      DriverMotors::startMotorsForwardLeft(duty_cycle);
+
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
       pidType->servo.write(pidType->STRAIGHT_ANGLE + *output);
+      return "Turn right (O: " + String(*output) + ")";
+
+    } else if(*output > 0) {
+
+      // duty_cycle = 20;
+      DriverMotors::startMotorsForwardRight(duty_cycle);
+      DriverMotors::startMotorsForwardLeft(duty_cycle);
+
+      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+      // display_handler.println(duty_cycle_print);
+      pidType->servo.write(pidType->STRAIGHT_ANGLE + *output);
+      return "Turn left (O: " + String(*output) + ")";
+    } else {
+      // duty_cycle = 40;
+      DriverMotors::startMotorsForwardRight(duty_cycle);
+      DriverMotors::startMotorsForwardLeft(duty_cycle);
+
+      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
+      // display_handler.println(duty_cycle_print);
+      pidType->servo.write(pidType->STRAIGHT_ANGLE);
       return "Go straight (O: " + String(*output) + ")";
     }
   }
+
+
 }

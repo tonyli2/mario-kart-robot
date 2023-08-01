@@ -6,8 +6,12 @@ namespace LocationIdentifier {
     float_t rightMarker = 0.0f;
     float_t leftTapeSens = 0.0f;
     float_t rightTapeSens = 0.0f;
-    const float_t LM_THRESHOLD = 600.0f;
-    const float_t RM_THRESHOLD = 600.0f;
+    const float_t LM_THRESHOLD = 390.0f;
+    const float_t RM_THRESHOLD = 390.0f;
+
+    const float_t LTape_THRESHOLD = 390.0f;
+    const float_t RTape_THRESHOLD = 390.0f;
+
     bool isGoingUpRamp = false;
 
     /**
@@ -29,15 +33,15 @@ namespace LocationIdentifier {
         bool readyToJump = 
             leftMarker < LM_THRESHOLD && 
             rightMarker < RM_THRESHOLD &&
-            leftTapeSens < LM_THRESHOLD &&
-            rightTapeSens < RM_THRESHOLD &&
+            leftTapeSens < LTape_THRESHOLD &&
+            rightTapeSens < RTape_THRESHOLD &&
             isGoingUpRamp;
 
         bool reachedRampStart = 
             leftMarker < LM_THRESHOLD && 
             rightMarker > RM_THRESHOLD &&
-            leftTapeSens <  LM_THRESHOLD &&
-            rightTapeSens < RM_THRESHOLD &&
+            leftTapeSens <  LTape_THRESHOLD &&
+            rightTapeSens < RTape_THRESHOLD &&
             !isGoingUpRamp;
 
         if(readyToJump){
