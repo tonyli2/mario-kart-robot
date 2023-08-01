@@ -36,7 +36,7 @@
 #define IR_DETECTOR_RIGHT               PA5
 
 // Steering servo pin (PWM)
-#define STEERING_SERVO                  PA_8
+#define STEERING_SERVO                  PA_10
 
 // Motor driving pins (PWM)
 #define LEFT_DRIVING_FWD                PB_9
