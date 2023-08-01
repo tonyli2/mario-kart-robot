@@ -3,34 +3,74 @@
 namespace DriverMotors{
 
     /*
-        @brief Drive the rear-wheel motors forward
+        @brief Drive the right-wheel motors forward
         at specified PWM duty cycle
     */
-    void startMotorsForward(short dutyCycle){
-        pwm_start(DRIVING_PIN_FORWARD, PWM_FREQ, dutyCycle, 
+    void startMotorsForwardRight(short dutyCycle){
+        pwm_start(RIGHT_DRIVING_FWD, PWM_FREQ, dutyCycle, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(RIGHT_DRIVING_BKWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+    }
+
+    /*
+        @brief Drive the left-wheel motors forward
+        at specified PWM duty cycle
+    */
+    void startMotorsForwardLeft(short dutyCycle){
+        pwm_start(LEFT_DRIVING_FWD, PWM_FREQ, dutyCycle, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(LEFT_DRIVING_BKWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
     }
 
     /*
-        @brief Drive the rear-wheel motors backwards
+        @brief Drive the right-wheel motors backwards
         at specified PWM duty cycle
     */
-    void startMotorsBackward(short dutyCycle){
-        pwm_start(DRIVING_PIN_BACKWARD, PWM_FREQ, dutyCycle, 
+    void startMotorsBackwardRight(short dutyCycle){
+        pwm_start(RIGHT_DRIVING_BKWD, PWM_FREQ, dutyCycle, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(RIGHT_DRIVING_FWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
     }
 
     /*
-        @brief stop the forward motor pwm signal
+        @brief Drive the left-wheel motors backwards
+        at specified PWM duty cycle
     */
-    void stopMotorsForward(){
-        pwm_stop(DRIVING_PIN_FORWARD);
+    void startMotorsBackwardLeft(short dutyCycle){
+        pwm_start(LEFT_DRIVING_BKWD, PWM_FREQ, dutyCycle, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(LEFT_DRIVING_FWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
     }
 
     /*
-        @brief stop the backward motor pwm signal
+        @brief stop the right forward motor pwm signal
     */
-    void stopMotorsBackward(){
-        pwm_stop(DRIVING_PIN_BACKWARD);
+    void stopMotorsRight(){
+        pwm_start(RIGHT_DRIVING_FWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(RIGHT_DRIVING_BKWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
     }
+
+    /*
+        @brief stop the left forward motor pwm signal
+    */
+    void stopMotorsLeft(){
+        pwm_start(LEFT_DRIVING_FWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+
+        pwm_start(LEFT_DRIVING_BKWD, PWM_FREQ, 0, 
+        TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+    }
+
 }
