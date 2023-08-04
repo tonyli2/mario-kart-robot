@@ -2,31 +2,33 @@
 
 namespace FFT {
 
-    //FFT Handler
-    arduinoFFT FFTHandler = arduinoFFT();
-
-    // Stores sampled readings of signal
-    double_t real[SAMPLE]; // Stores real part of transformed signal
-    double_t imag[SAMPLE]; // Won't need imag part, but we need a placeholder for function call
-    
-    // Define an array so we can return the magnitude of the 
-    // strongest freq as well as its magnitude
-    // Index 0: strongest frequency
-    // Index 1: magnitude of strongest frequency
-    double_t freqAndMagnitude[] = {0, 0};
-
+    const double_t MIN_MAG = 10000;
     const double_t DEVIATION = 20;
-    const double_t DESIRED_SIGNAL = 1000.0;
+    const double_t DESIRED_FREQ = 1000;
 
     // Timing variables
     unsigned int sampling_period_us = round(1000000 * (1.0 / samplingFrequency));
     unsigned long microseconds;
 
     // Private function
-    double_t maxMagFinder(double_t *mags);
+    float_t maxMagFinder(double_t *mags);
 
-    double_t * runFFT(int readPin) {
+    /**
+     * @brief 
+     * 
+     * @param readPin 
+     * @param handler 
+     * @return float_t* 
+     */
+    float_t runFFT(int readPin, arduinoFFT handler) {
 
+        // Stores sampled readings of signal
+        double_t real[SAMPLE]; // Stores real part of transformed signal
+        double_t imag[SAMPLE]; // Stores imaginary part of transformed signal
+        double_t freq[SAMPLE]; // Stores frequencies associated with magnitudes
+    
+        handler = arduinoFFT();
+        
         /*SAMPLING*/
         microseconds = micros();
         for (uint16_t i = 0; i < SAMPLE; i++)
@@ -42,36 +44,76 @@ namespace FFT {
         }
 
         // Now use abstract libraries to transform our signal
-        FFTHandler.Windowing(real, SAMPLE, FFT_WIN_TYP_HAMMING, FFT_FORWARD);       /* Abstract library, required but not sure what it does */
-        FFTHandler.Compute(real, imag, SAMPLE, FFT_FORWARD);                        /* Transforms signal, stores in "real" variable */
-        FFTHandler.ComplexToMagnitude(real, imag, SAMPLE);                          /* At each point i compute the complex-real
+        handler.Windowing(real, SAMPLE, FFT_WIN_TYP_HAMMING, FFT_FORWARD);       /* Abstract library, required but not sure what it does */
+        handler.Compute(real, imag, SAMPLE, FFT_FORWARD);                        /* Transforms signal, stores in "real" variable */
+        handler.ComplexToMagnitude(real, imag, SAMPLE);                          /* At each point i compute the complex-real
                                                                                 plane magnitude to see strength of signals at each frequency */
-        freqAndMagnitude[0] = FFTHandler.MajorPeak(real, SAMPLE, samplingFrequency); // Strongest frequency
-        freqAndMagnitude[1] = maxMagFinder(real);
-        return freqAndMagnitude;
+        
+        // Maps magnitude at each element to a frequency. Scalped from arduinoFFT.h
+        for(uint16_t i = 1; i < SAMPLE - 1; i++) {
+
+            double delta = 0.5 * ((real[i - 1] - real[i + 1]) /
+            (real[i - 1] - (2.0 * real[i]) + real[i + 1]));
+        
+            double interpolatedX = ((i + delta) * samplingFrequency) / (SAMPLE - 1);
+
+            freq[i] = interpolatedX;
+            if(abs(DESIRED_FREQ - interpolatedX) < DEVIATION){
+
+                Serial2.print("                   Freq:                 ");
+                Serial2.println(freq[i]);
+
+                return real[i];
+            }
+        }
+
+        return 0; // If we do not see 1kHz
     }
 
 
-    bool hasFoundBeacon(int leftPin, int rightPin) {
+    bool hasFoundBeacon(int leftPin, int rightPin, float_t *leftInput, float_t *rightInput,
+                        arduinoFFT leftHandler, arduinoFFT rightHandler) {
 
-        double_t *leftReading = runFFT(leftPin);
-        double_t *rightReading = runFFT(rightPin);
+        float_t leftMag = runFFT(leftPin, leftHandler);
+        float_t rightMag = runFFT(rightPin, rightHandler);
 
-        bool leftHasDetected = leftReading[0] > DESIRED_SIGNAL + DEVIATION 
-                            || leftReading[0] < DESIRED_SIGNAL - DEVIATION;
+        Serial2.print(" L: --------> ");
+        Serial2.print(leftMag);
+        Serial2.print(" ||| ");
+        Serial2.print(rightMag);
+        Serial2.println("  <-------- R ");
 
-        bool rightHasDetected = rightReading[0] > DESIRED_SIGNAL + DEVIATION 
-                            || rightReading[0] < DESIRED_SIGNAL - DEVIATION;
+        bool leftHasDetected = (leftMag != 0);
+        bool rightHasDetected = (rightMag != 0);
 
-        return leftHasDetected && rightHasDetected;
+        if(!leftHasDetected && !rightHasDetected) {
+            return false;
+        }
+        // else if(leftHasDetected && !rightHasDetected){
+        //     *leftInput = leftMag;
+        //     *rightInput = 0;
+        // }
+        // else if(!leftHasDetected && rightHasDetected){
+        //     *leftInput = 0;
+        //     *rightInput = rightMag;
+        // }
+        // else {
+        //     *leftInput = leftMag;
+        //     *rightInput = rightMag;
+        // }
+
+        *leftInput = leftMag;
+        *rightInput = rightMag;
+
+        return true;
     }
 
-    double_t maxMagFinder(double_t *mags) {
+    float_t maxMagFinder(double_t *mags) {
 
         double_t max = 0;
         for (uint32_t i = 0; i < SAMPLE; i++) {
             if (mags[i] > max) {
-                max = real[i];
+                max = mags[i];
             }
         }
         return max;

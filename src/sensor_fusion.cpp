@@ -94,4 +94,9 @@ namespace SensorFusion {
 
         return sensor.theta_final;
     }
+    
+
+    bool isGoingUpRamp(){
+        
+    }
 }
