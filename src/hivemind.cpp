@@ -70,19 +70,19 @@ namespace Hivemind
     }
 
     void setupHivemind(){
-        DigitalPID::setupServo(&ir_pid);
+        DigitalPID::setupServo(&steering_pid);
     }
 
     void testServo(uint8_t angle){
-        // steering_pid.servo.write(angle);
-        for(int i = 73; i < 118; i++){
-            steering_pid.servo.write(i);
-            delay(15);
-        }
-        for(int i = 117; i > 72; i--){
-            steering_pid.servo.write(i);
-            delay(15);
-        }
+        steering_pid.servo.write(angle);
+        // for(int i = 73; i < 118; i++){
+        //     steering_pid.servo.write(i);
+        //     delay(15);
+        // }
+        // for(int i = 117; i > 72; i--){
+        //     steering_pid.servo.write(i);
+        //     delay(15);
+        // }
 
     }
 

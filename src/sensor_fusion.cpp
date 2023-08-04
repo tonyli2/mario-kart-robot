@@ -2,7 +2,8 @@
 
 namespace SensorFusion {
     
-    MPU9250 IMU(Wire, 0x68);
+    TwoWire Wire2 = TwoWire(PB11, PB10);
+    MPU9250 IMU(Wire2, 0x68);
 
     float_t dummy[] = {0.0f, 0.0f, 0.0f};       // Dummy vector
     // Initializing sensor fusion
@@ -85,7 +86,7 @@ namespace SensorFusion {
         sensor.theta_w[2] = IMU.getYawAngle_rad();
 
         // Fusing two attitude vectors into finalized attitude vector in unit degree
-        sensor.alpha_w = 0.93f;
+        sensor.alpha_w = 0.95f;
         sensor.alpha_am = 1.0f - sensor.alpha_w;
         arm_scale_f32(sensor.theta_w, sensor.alpha_w, sensor.theta_w_new, IMU_VEC_SIZE);
         arm_scale_f32(sensor.theta_am, sensor.alpha_am, sensor.theta_am_new, IMU_VEC_SIZE);

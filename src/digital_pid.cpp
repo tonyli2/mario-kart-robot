@@ -29,10 +29,8 @@ namespace DigitalPID {
     else { // Otherwise, follow IR beacon, not tape
 
       // Check to see if 1kHz is found
-      if(FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT)){
-        pidType->leftInput = FFT::runFFT(IR_DETECTOR_LEFT)[1];
-        pidType->rightInput = FFT::runFFT(IR_DETECTOR_RIGHT)[1];
-      }
+      pidType->leftInput = FFT::runFFT(IR_DETECTOR_LEFT)[1];
+      pidType->rightInput = FFT::runFFT(IR_DETECTOR_RIGHT)[1];
 
     }
 
