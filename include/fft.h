@@ -12,6 +12,7 @@ namespace FFT {
     //  (in lab we need to be able to detect at least 1kHz)
 
     // Function definition
-    double_t * runFFT(int readPin);
-    bool hasFoundBeacon(int leftPin, int rightPin);
+    float_t runFFT(int readPin, arduinoFFT handler);
+    bool hasFoundBeacon(int leftPin, int rightPin, float_t *leftInput, float_t *rightInput,
+                        arduinoFFT leftHandler, arduinoFFT rightHandler);
 }

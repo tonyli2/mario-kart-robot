@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>
 #include <Servo.h>
 
 // Custom header files
@@ -10,7 +9,7 @@
 #include <sensor_fusion.h>
 #include <hivemind.h>
 #include <jump_handler.h>
-#include <location_identifier.h>
+// #include <analog_pid.h>
 
 /*
     This header file contains all the constants
@@ -44,3 +43,4 @@
 
 #define RIGHT_DRIVING_FWD               PA_6
 #define RIGHT_DRIVING_BKWD              PA_7
+#define TEST_PIN_LED                    PA8
