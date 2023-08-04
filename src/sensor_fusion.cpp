@@ -95,4 +95,8 @@ namespace SensorFusion {
 
         return sensor.theta_final;
     }
+
+    void resetYaw() {
+        IMU.resetYawAngle();
+    }
 }

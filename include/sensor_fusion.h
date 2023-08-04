@@ -20,4 +20,5 @@ namespace SensorFusion {
 
     int8_t IMUInit();
     float_t * IMUGetData();
+    void resetYaw();
 }
