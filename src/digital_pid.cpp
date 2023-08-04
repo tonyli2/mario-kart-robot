@@ -6,8 +6,8 @@ namespace DigitalPID {
    * @brief Attaching servo to the specified pin
    * 
    */
-  void setupServo(PID *pidType) {
-    pidType->servo.attach(STEERING_SERVO);
+  void setupServo(Servo servo) {
+    servo.attach(STEERING_SERVO);
   }
 
   /**
@@ -16,26 +16,33 @@ namespace DigitalPID {
    * 
    * @note Might change return type to void once finishing PID tunning
    */
-  String applyPID(PID *pidType) {
+  void applyPID(PID *pidType, Servo servo) {
+
+    bool applyDifferential = false;
+
     // Calculate the elapsed time since the last iteration
     pidType->currTime = millis();
     pidType->dt = pidType->currTime - pidType->prevTime;
 
     // Read the current value (Low on Tape, High elsewhere)
-    if(!pidType->isIR) {
+    if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftInput), 
+                    &(pidType->rightInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
+          
+      digitalWrite(TEST_PIN_LED, HIGH);
+    }
+    else {
+      digitalWrite(TEST_PIN_LED, LOW);
+      Serial2.print(" ____________________________________________ ");
       pidType->leftInput = analogRead(LEFT_TAPE_PIN);
       pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
-    }
-    else { // Otherwise, follow IR beacon, not tape
-
-      // Check to see if 1kHz is found
-      pidType->leftInput = FFT::runFFT(IR_DETECTOR_LEFT)[1];
-      pidType->rightInput = FFT::runFFT(IR_DETECTOR_RIGHT)[1];
-
     }
 
     // Calculate the error term
     calcError(&(pidType->leftInput), &(pidType->rightInput), pidType);
+
+    if(pidType->error == pidType->prevError * 2.0){
+      applyDifferential = true;
+    }
 
     // Calculate the integral term
     pidType->integral += pidType->error * pidType->dt;
@@ -50,14 +57,15 @@ namespace DigitalPID {
     pidType->derivative = (pidType->error - pidType->prevError) / pidType->dt;
 
     // Calculate the PID output
-    pidType->output = pidType->Kp * pidType->error + pidType->Ki * pidType->integral + pidType->Kd * pidType->derivative;
+    pidType->output = pidType->Kp * pidType->error + pidType->Ki * pidType->integral 
+                      + pidType->Kd * pidType->derivative;
 
     // Update the previous error and time for the next iteration
     pidType->prevError = pidType->error;
     pidType->prevTime = pidType->currTime;
 
     // Apply the output (e.g. turn servo)
-    return processOutput(&(pidType->output), pidType);
+    processOutput(&(pidType->output), pidType, applyDifferential, servo);
   }
 
   /**
@@ -87,29 +95,38 @@ namespace DigitalPID {
         // Left is off tape and Right is off tape
         // Look at previous error state and magnify it
         pidType->error = pidType->prevError * 2.0f;
+
       } else {
         // Both are on the tape
         // Go straight
         pidType->error = 0.0f;
       }
-    } else {              // IR tracking mode
-      if (*left - *right > 100) {
-        // Left IR signal is stronger
+
+    } else {
+      // IR tracking mode
+      // float_t averageAmplitude = (*left + *right) * 0.5f;
+
+      //Dynamically change IR Threshold
+      pidType->IR_THRESHOLD = 3000;//-0.568f * averageAmplitude + 8300.0f;
+
+      if(pidType->IR_THRESHOLD < 0){
+        pidType->IR_THRESHOLD = 0;
+      }
+
+      if (*left - *right > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
-      } else if (*right - *left > 100) {
-        // Right IR signal is stronger
+        Serial2.print("TURN LEFT!!! ");
+      } else if (*right - *left > pidType->IR_THRESHOLD) {
         // TURN right
         pidType->error = -1.0f;
-      } else if (abs(*left - *right) < 100) {
-        // Both IR signals are similar
+        Serial2.print("TURN RIGHT!!! ");
+      } else if (abs(*left - *right) < pidType->IR_THRESHOLD) {
         // GO STRAIGHT
         pidType->error = 0.0f;
-      } else {
-        // Left and right IR signals are both off
-        // Look at previous error state and magnify it
-        pidType->error = pidType->prevError * 2.0f;
+        Serial2.print("STRAIGHT!!! ");
       }
+
     }
     
   }
@@ -121,7 +138,8 @@ namespace DigitalPID {
    * 
    * @note 90 is forwards, anything less is a right turn, vice versa for left turn
    */
-  static String processOutput(float_t *output, PID *pidType) {
+  static void processOutput(float_t *output, PID *pidType, 
+                              bool applyDifferential, Servo servo) {
 
     u_int8_t duty_cycle = 0;
 
@@ -136,24 +154,35 @@ namespace DigitalPID {
     if(*output < 0) {
 
       // duty_cycle = 20;
-      DriverMotors::startMotorsForwardRight(duty_cycle);
-      DriverMotors::startMotorsForwardLeft(duty_cycle);
+      if(!applyDifferential){
+        DriverMotors::startMotorsForwardRight(duty_cycle);
+        DriverMotors::startMotorsForwardLeft(duty_cycle);
+      }
+      else { //Apply differential in the back
+        DriverMotors::startMotorsForwardRight(duty_cycle - duty_cycle * 0.75);
+        // DriverMotors::startMotorsForwardLeft(55);
+      }
 
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      pidType->servo.write(pidType->STRAIGHT_ANGLE + *output);
-      return "Turn right (O: " + String(*output) + ")";
+      servo.write(pidType->STRAIGHT_ANGLE + *output);
 
     } else if(*output > 0) {
 
       // duty_cycle = 20;
-      DriverMotors::startMotorsForwardRight(duty_cycle);
-      DriverMotors::startMotorsForwardLeft(duty_cycle);
+      if(!applyDifferential){
+        DriverMotors::startMotorsForwardRight(duty_cycle);
+        DriverMotors::startMotorsForwardLeft(duty_cycle);
+      }
+      else { //Apply differential in the back
+        // DriverMotors::startMotorsForwardRight(55);
+        DriverMotors::startMotorsForwardLeft(duty_cycle - duty_cycle * 0.75);
+      }
 
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      pidType->servo.write(pidType->STRAIGHT_ANGLE + *output);
-      return "Turn left (O: " + String(*output) + ")";
+      servo.write(pidType->STRAIGHT_ANGLE + *output);
+
     } else {
       // duty_cycle = 40;
       DriverMotors::startMotorsForwardRight(duty_cycle);
@@ -161,8 +190,7 @@ namespace DigitalPID {
 
       // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
       // display_handler.println(duty_cycle_print);
-      pidType->servo.write(pidType->STRAIGHT_ANGLE);
-      return "Go straight (O: " + String(*output) + ")";
+      servo.write(pidType->STRAIGHT_ANGLE);
     }
   }
 
