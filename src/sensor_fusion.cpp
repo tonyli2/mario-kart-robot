@@ -1,4 +1,4 @@
-#include <sensor_fusion.h>
+#include <config.h>
 
 namespace SensorFusion {
     
@@ -81,9 +81,9 @@ namespace SensorFusion {
         sensor.theta_am[2] = atan2(-sensor.b_y, sensor.b_x);
 
         // Compute attitude vector using gyroscope (only yaw angle)
-        sensor.theta_w[0] = sensor.theta_am[0];
-        sensor.theta_w[1] = sensor.theta_am[1];
-        sensor.theta_w[2] = IMU.getYawAngle_rad();
+        sensor.theta_w[0] = sensor.theta_am[0];     // Roll
+        sensor.theta_w[1] = sensor.theta_am[1];     // Pitch
+        sensor.theta_w[2] = IMU.getYawAngle_rad();  //Yaw
 
         // Fusing two attitude vectors into finalized attitude vector in unit degree
         sensor.alpha_w = 0.95f;
@@ -97,8 +97,23 @@ namespace SensorFusion {
     }
     
 
-    bool isGoingUpRamp(){
-        
+    bool isGoingUpRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray) {
+
+        const float_t angleThreshold = 9.0f;
+
+        if(pitchCounter >= sizeOfArray){
+            pitchCounter = 0;
+        }
+
+        pitchArray[pitchCounter] = IMUGetData()[1];
+
+        for(int i = 0; i < sizeOfArray; i++){
+            if(pitchArray[i] < angleThreshold){
+                return false;
+            }
+        }
+
+        return true;
     }
 
     void resetYaw() {

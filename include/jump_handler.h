@@ -13,4 +13,8 @@ namespace JumpHandler {
     void setupJumpHandler();
 
     void jumpHandler();
+
+    void afterJump(bool *doneTurn);
+
+    float_t calcIMUSteering(uint32_t *speed);
 }

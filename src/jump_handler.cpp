@@ -12,6 +12,10 @@ namespace JumpHandler {
     const float_t LTape_THRESHOLD = 390.0f;
     const float_t RTape_THRESHOLD = 390.0f;
 
+    const uint8_t sizeOfPitchArray = 10;
+    float_t pitchArray[sizeOfPitchArray] = {0};
+    uint8_t pitchCounter = 0;
+
     bool isGoingUpRamp = false;
 
     /**
@@ -30,7 +34,7 @@ namespace JumpHandler {
         leftTapeSens = analogRead(LEFT_TAPE_PIN);
         rightTapeSens = analogRead(RIGHT_TAPE_PIN);
 
-        isGoingUpRamp = SensorFusion::isGoingUpRamp();
+        isGoingUpRamp = SensorFusion::isGoingUpRamp(pitchArray, pitchCounter, sizeOfPitchArray);
 
         bool readyToJump = 
             leftMarker < LM_THRESHOLD && 
@@ -57,18 +61,49 @@ namespace JumpHandler {
      * required before and after bridge jump
      * 
      */
-    void jumpHandler(){
+    void jumpHandler() {
         
         // TODO code for managing bridge jump here
 
         // 1. Go Straight off bridge
         // DriverMotors::startMotorsForward(30);
 
-        // 2. Trigger IMU sequence (reaction wheel)
-        
-        // 3. When landed, use IMU to turn robot to face beacon
+        // 2. Trigger IMU sequence 
 
-        // 4. Reset Interrupt Pin
+        // 3. Reset Interrupt Pin
         digitalWrite(INTERRUPT_PIN, LOW);
+    }
+
+    void afterJump(bool *doneTurn){
+
+        float_t * imuData = SensorFusion::IMUGetData();
+
+        Serial2.print("Roll ");
+        Serial2.print(imuData[0]);
+        Serial2.print("    Pitch ");
+        Serial2.print(imuData[1]);
+        Serial2.print("    Yaw ");
+        Serial2.println(imuData[2]);
+
+        uint32_t speed = 90;
+        if (imuData[2] <= calcIMUSteering(&speed)) {
+            Hivemind::testServo(117);
+            DriverMotors::startMotorsForwardLeft(35);
+            DriverMotors::startMotorsForwardRight(55);
+
+            *doneTurn = false;
+        }
+        
+        else {
+            Hivemind::testServo(95);
+            DriverMotors::stopMotorsLeft();
+            DriverMotors::stopMotorsRight();
+
+            *doneTurn = true;
+        }
+    }
+
+    float_t calcIMUSteering(uint32_t *speed) {
+        return 180.0f - (0.5006f * *speed - 14.176f) - 15.0f;
     }
 }

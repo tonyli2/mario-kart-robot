@@ -19,7 +19,10 @@ namespace SensorFusion {
     };
 
     int8_t IMUInit();
+
     float_t * IMUGetData();
-    bool isGoingUpRamp();
+
+    bool isGoingUpRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray);
+    
     void resetYaw();
 }
