@@ -17,8 +17,10 @@ namespace Hivemind
         .R_THRESHOLD        = 500.0f,
         .STRAIGHT_ANGLE     = 95,
         .MAX_INTEGRAL       = 100.0f,
-        .leftInput          = 0.0f,
-        .rightInput         = 0.0f,
+        .leftTapeInput      = 0.0f,
+        .leftMarkerInput    = 0.0f,
+        .rightTapeInput     = 0.0f,
+        .rightMarkerInput   = 0.0f,
         .error              = 0.0f,
         .prevError          = 0.0f,
         .derivative         = 0.0f,
@@ -42,8 +44,10 @@ namespace Hivemind
         .IR_THRESHOLD       = 1500.0f,
         .STRAIGHT_ANGLE     = 95,
         .MAX_INTEGRAL       = 100.0f,
-        .leftInput          = 0.0f,
-        .rightInput         = 0.0f,
+        .leftTapeInput      = 0.0f,
+        .leftMarkerInput    = 0.0f,
+        .rightTapeInput     = 0.0f,
+        .rightMarkerInput   = 0.0f,
         .error              = 0.0f,
         .prevError          = 0.0f,
         .derivative         = 0.0f,
@@ -180,8 +184,8 @@ namespace Hivemind
 
         double_t escapeThreshold = 13600;
 
-        if(ir_pid.leftInput > escapeThreshold && 
-            ir_pid.rightInput > escapeThreshold){
+        if(ir_pid.leftTapeInput > escapeThreshold && 
+            ir_pid.rightTapeInput > escapeThreshold){
 
             steering_pid.justEscapedIR = true;
             return steering_pid.justEscapedIR;

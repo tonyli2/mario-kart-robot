@@ -24,28 +24,35 @@ namespace DigitalPID {
     pidType->currTime = millis();
     pidType->dt = pidType->currTime - pidType->prevTime;
 
-    // Read the current value (Low on Tape, High elsewhere)
-    if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftInput), 
-                    &(pidType->rightInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
+    // Read the current value (Low on Tape, High elsewhere)\
+    // If in IR tracking mode, use tape sensor variables (not marker sensor) to store IR readings
+    if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftTapeInput), 
+                    &(pidType->rightTapeInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
           
       digitalWrite(TEST_PIN_LED, HIGH);
     }
     else if(!pidType->isIR){
       // digitalWrite(TEST_PIN_LED, LOW);
       // Serial2.println(" TAPE TAPE TAPE TAPE ");
-      pidType->leftInput = analogRead(LEFT_TAPE_PIN);
-      pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
+      pidType->leftTapeInput    = analogRead(LEFT_TAPE_PIN);
+      pidType->leftMarkerInput  = analogRead(MARKER_SENSE_LEFT);
+      pidType->rightTapeInput   = analogRead(RIGHT_TAPE_PIN);
+      pidType->rightMarkerInput = analogRead(MARKER_SENSE_RIGHT);
 
-      Serial2.print("L: ");
-      Serial2.print(pidType->leftInput);
-      Serial2.print("R: ");
-      Serial2.println(pidType->rightInput);
+      Serial2.print("LT: ");
+      Serial2.print(pidType->leftTapeInput);
+      Serial2.print("LM: ");
+      Serial2.print(pidType->leftMarkerInput);
+      Serial2.print("RT: ");
+      Serial2.println(pidType->rightTapeInput);
+      Serial2.print("RM: ");
+      Serial2.print(pidType->rightMarkerInput);
     
 
     }
 
     // Calculate the error term
-    calcError(&(pidType->leftInput), &(pidType->rightInput), pidType, &applyDifferential);
+    calcError(pidType, &applyDifferential);
 
     // Calculate the integral term
     pidType->integral += pidType->error * pidType->dt;
@@ -68,7 +75,7 @@ namespace DigitalPID {
     pidType->prevTime = pidType->currTime;
 
     // Apply the output (e.g. turn servo)
-    processOutput(&(pidType->output), pidType, applyDifferential, servo);
+    processOutput(pidType, applyDifferential, servo);
   }
 
   /**
@@ -76,7 +83,7 @@ namespace DigitalPID {
    * @param[in] left Left tape sensor analog reading
    * @param[in] right Right tape sensor analog reading
    */
-  static void calcError(float_t *left, float_t *right, PID *pidType, bool *applyDifferential) {
+  static void calcError(PID *pidType, bool *applyDifferential) {
     
     if (!pidType->isIR) {   // Tape tracking mode
         /*
@@ -90,31 +97,52 @@ namespace DigitalPID {
         pidType->error = 1.5f;
         *applyDifferential = false;
       }
-      else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
-        // Left is off tape and Right is off tape
+      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
+              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+        // All four sensors are off the tape
         // Look at previous error state and magnify it
         pidType->error = pidType->prevError * 2.0f;
         *applyDifferential = true;
 
       }
-      else if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
-        // Left is off tape and Right is on tape
-        // TURN RIGHT
+      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
+              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->R_THRESHOLD) {
+        // Left marker, left tape, right tape are off; right marker is on
+        // TURN RIGHT by a big amount
         pidType->error = -1.0f;
         *applyDifferential = false;
         pidType->justEscapedIR = false;
 
       } 
-      else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
-        // Left is on tape and Right is off tape
-        // TURN LEFT
-        pidType->error = 1.0f;
+      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
+              && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->R_THRESHOLD) {
+        // Left marker and left tape are off; right tape and marker are on
+        // TURN RIGHT by a small amount
+        pidType->error = -0.5f;
         *applyDifferential = false;
         pidType->justEscapedIR = false;
 
       } 
+      else if(pidType->leftMarkerInput < pidType->L_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
+              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+        // Left marker and left tape are on; right tape and marker are off
+        // TURN LEFT by a small amount
+        pidType->error = 0.5f;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+
+      }
+      else if(pidType->leftMarkerInput < pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
+              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+        // Left marker is on; left tape, right tape and right marker are off
+        // TURN LEFT by a big amount
+        pidType->error = 1.0f;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+
+      }
       else {
-        // Both are on the tape
+        // All four on the tape
         // Go straight
         pidType->error = 0.0f;
         *applyDifferential = false;
@@ -135,15 +163,15 @@ namespace DigitalPID {
       //   pidType->IR_THRESHOLD = 0;
       // }
 
-      if (*left - *right > pidType->IR_THRESHOLD) {
+      if (pidType->leftTapeInput - pidType->rightTapeInput > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
         Serial2.println("TURN LEFT!!! ");
-      } else if (*right - *left > pidType->IR_THRESHOLD) {
+      } else if (pidType->rightTapeInput - pidType->leftTapeInput > pidType->IR_THRESHOLD) {
         // TURN right
         pidType->error = -1.0f;
         Serial2.println("TURN RIGHT!!! ");
-      } else if (abs(*left - *right) < pidType->IR_THRESHOLD) {
+      } else if (abs(pidType->leftTapeInput - pidType->rightTapeInput) < pidType->IR_THRESHOLD) {
         // GO STRAIGHT
         pidType->error = 0.0f;
         Serial2.println("STRAIGHT!!! ");
@@ -160,18 +188,17 @@ namespace DigitalPID {
    * 
    * @note 90 is forwards, anything less is a right turn, vice versa for left turn
    */
-  static void processOutput(float_t *output, PID *pidType, 
-                              bool applyDifferential, Servo servo) {
+  static void processOutput(PID *pidType, bool applyDifferential, Servo servo) {
 
     //Limits output angle
-    if(pidType->STRAIGHT_ANGLE + *output > pidType->MAX_ANGLE) {
-      *output = pidType->MAX_ANGLE - pidType->STRAIGHT_ANGLE;
-    } else if(pidType->STRAIGHT_ANGLE + *output < pidType->MIN_ANGLE) {
-      *output = pidType->MIN_ANGLE - pidType->STRAIGHT_ANGLE;
+    if(pidType->STRAIGHT_ANGLE + pidType->output > pidType->MAX_ANGLE) {
+      pidType->output = pidType->MAX_ANGLE - pidType->STRAIGHT_ANGLE;
+    } else if(pidType->STRAIGHT_ANGLE + pidType->output < pidType->MIN_ANGLE) {
+      pidType->output = pidType->MIN_ANGLE - pidType->STRAIGHT_ANGLE;
     }
 
     // Process servo angle from PID output
-    if(*output < 0) {
+    if(pidType->output < 0) {
 
       // duty_cycle = 20;
       if(!applyDifferential){
@@ -185,9 +212,9 @@ namespace DigitalPID {
         // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED);
       }
 
-      servo.write(pidType->STRAIGHT_ANGLE + *output);
+      servo.write(pidType->STRAIGHT_ANGLE + pidType->output);
 
-    } else if(*output > 0) {
+    } else if(pidType->output > 0) {
 
       // duty_cycle = 20;
       if(!applyDifferential){
@@ -200,7 +227,7 @@ namespace DigitalPID {
         // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED);
         // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED * 0.6);
       }
-      servo.write(pidType->STRAIGHT_ANGLE + *output);
+      servo.write(pidType->STRAIGHT_ANGLE + pidType->output);
 
     } else {
       // duty_cycle = 40;

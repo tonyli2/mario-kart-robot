@@ -17,8 +17,10 @@ namespace DigitalPID {
         float_t IR_THRESHOLD;           // Difference between l & R IR signal for PID
         const uint8_t STRAIGHT_ANGLE;   // Angle for servo that is straight forward
         const float_t MAX_INTEGRAL;     // Integral term max threshold value
-        float_t leftInput;              // Current left-wheel reading
-        float_t rightInput;             // Current right-wheel reading
+        float_t leftTapeInput;          // Current left tape sensor reading
+        float_t leftMarkerInput;        // Current left marker sensor reading
+        float_t rightTapeInput;         // Current right tape sensor reading
+        float_t rightMarkerInput;       // Current right marker sensor reading
         float_t error;                  // PID proportional term
         float_t prevError;              // Previous error for derivative term
         float_t derivative;             // PID derivative term
@@ -39,7 +41,6 @@ namespace DigitalPID {
 
     void setupServo(Servo servo);
     void applyPID(PID *pidType, Servo servo);
-    static void calcError(float_t *left, float_t *right, PID *pidType, bool *applyDifferential);
-    static void processOutput(float_t *output, PID *pidType, 
-                                bool applyDifferential, Servo servo);
+    static void calcError(PID *pidType, bool *applyDifferential);
+    static void processOutput(PID *pidType, bool applyDifferential, Servo servo);
 }
