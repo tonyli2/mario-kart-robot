@@ -8,6 +8,8 @@ namespace Hivemind
 
     void testMotors();
 
+    bool canExitIRFollowing();
+
 } // namespace Hivemind
 
 

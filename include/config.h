@@ -28,7 +28,8 @@
 // Marker Reflectance Sensors L R (Digital)
 #define MARKER_SENSE_LEFT               PB0
 #define MARKER_SENSE_RIGHT              PB1
-#define INTERRUPT_PIN                   PB7
+#define JUMP_PIN                        PB7
+#define COLLISION_PIN                   PB3
 
 // IR sensors (Analog)
 #define IR_DETECTOR_LEFT                PA4
@@ -40,7 +41,13 @@
 // Motor driving pins (PWM)
 #define LEFT_DRIVING_FWD                PB_9
 #define LEFT_DRIVING_BKWD               PB_8
-
 #define RIGHT_DRIVING_FWD               PA_6
 #define RIGHT_DRIVING_BKWD              PA_7
+
 #define TEST_PIN_LED                    PA8
+
+/* Position defining pins:
+    True = Starting position One
+    False = Starting position Two
+*/
+#define START_POSITION                  PA11

@@ -52,8 +52,7 @@ namespace JumpHandler {
      * 
      */
     void setupJumpHandler() {
-        pinMode(INTERRUPT_PIN, OUTPUT);
-        attachInterrupt(INTERRUPT_PIN, jumpHandler, RISING);
+        attachInterrupt(JUMP_PIN, jumpHandler, RISING);
     }
 
     /**
@@ -64,6 +63,7 @@ namespace JumpHandler {
     void jumpHandler() {
         
         // TODO code for managing bridge jump here
+        DriverMotors::stopMotorsBoth();
 
         // 1. Go Straight off bridge
         // DriverMotors::startMotorsForward(30);
@@ -71,7 +71,7 @@ namespace JumpHandler {
         // 2. Trigger IMU sequence 
 
         // 3. Reset Interrupt Pin
-        digitalWrite(INTERRUPT_PIN, LOW);
+        digitalWrite(JUMP_PIN, LOW);
     }
 
     void afterJump(bool *doneTurn){
@@ -96,8 +96,7 @@ namespace JumpHandler {
         
         else {
             Hivemind::testServo(95);
-            DriverMotors::stopMotorsLeft();
-            DriverMotors::stopMotorsRight();
+            DriverMotors::stopMotorsBoth();
 
             *doneTurn = true;
         }

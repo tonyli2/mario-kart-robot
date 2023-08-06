@@ -54,23 +54,29 @@ namespace DriverMotors{
     /*
         @brief stop the right forward motor pwm signal
     */
-    void stopMotorsRight(){
+    void stopMotorsBoth(){
         pwm_start(RIGHT_DRIVING_FWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
 
         pwm_start(RIGHT_DRIVING_BKWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
-    }
 
-    /*
-        @brief stop the left forward motor pwm signal
-    */
-    void stopMotorsLeft(){
         pwm_start(LEFT_DRIVING_FWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
 
         pwm_start(LEFT_DRIVING_BKWD, PWM_FREQ, 0, 
         TimerCompareFormat_t::PERCENT_COMPARE_FORMAT);
+    }
+
+
+    void diffSteeringLeft(){
+        DriverMotors::startMotorsForwardRight(55);
+        DriverMotors::startMotorsForwardLeft(35);
+    }
+
+    void diffSteeringRight(){
+        DriverMotors::startMotorsForwardRight(35);
+        DriverMotors::startMotorsForwardLeft(55);
     }
 
 }

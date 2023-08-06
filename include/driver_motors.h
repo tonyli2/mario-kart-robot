@@ -10,7 +10,9 @@ namespace DriverMotors{
 
     void startMotorsBackwardLeft(short dutyCycle);
 
-    void stopMotorsRight();
+    void stopMotorsBoth();
 
-    void stopMotorsLeft();
+    void diffSteeringLeft();
+
+    void diffSteeringRight();
 }

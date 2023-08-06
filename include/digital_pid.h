@@ -31,12 +31,15 @@ namespace DigitalPID {
         const int8_t MIN_ANGLE;         // Servo min turning angle
         bool isIR;
         arduinoFFT leftFFTHandler;      // Left FFT computation
-        arduinoFFT rightFFTHandler;      // Right FFT computation
+        arduinoFFT rightFFTHandler;     // Right FFT computation
+        uint8_t TURNING_SPEED;          // Duty cycle during turns
+        uint8_t STRAIGHT_SPEED;         // Duty cycle during straights
+        bool justEscapedIR;
     };
 
     void setupServo(Servo servo);
     void applyPID(PID *pidType, Servo servo);
-    static void calcError(float_t *left, float_t *right, PID *pidType);
+    static void calcError(float_t *left, float_t *right, PID *pidType, bool *applyDifferential);
     static void processOutput(float_t *output, PID *pidType, 
                                 bool applyDifferential, Servo servo);
 }

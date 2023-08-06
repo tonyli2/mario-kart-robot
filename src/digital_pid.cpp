@@ -30,19 +30,22 @@ namespace DigitalPID {
           
       digitalWrite(TEST_PIN_LED, HIGH);
     }
-    else {
-      digitalWrite(TEST_PIN_LED, LOW);
-      Serial2.print(" ____________________________________________ ");
+    else if(!pidType->isIR){
+      // digitalWrite(TEST_PIN_LED, LOW);
+      // Serial2.println(" TAPE TAPE TAPE TAPE ");
       pidType->leftInput = analogRead(LEFT_TAPE_PIN);
       pidType->rightInput = analogRead(RIGHT_TAPE_PIN);
+
+      Serial2.print("L: ");
+      Serial2.print(pidType->leftInput);
+      Serial2.print("R: ");
+      Serial2.println(pidType->rightInput);
+    
+
     }
 
     // Calculate the error term
-    calcError(&(pidType->leftInput), &(pidType->rightInput), pidType);
-
-    if(pidType->error == pidType->prevError * 2.0){
-      applyDifferential = true;
-    }
+    calcError(&(pidType->leftInput), &(pidType->rightInput), pidType, &applyDifferential);
 
     // Calculate the integral term
     pidType->integral += pidType->error * pidType->dt;
@@ -73,7 +76,7 @@ namespace DigitalPID {
    * @param[in] left Left tape sensor analog reading
    * @param[in] right Right tape sensor analog reading
    */
-  static void calcError(float_t *left, float_t *right, PID *pidType) {
+  static void calcError(float_t *left, float_t *right, PID *pidType, bool *applyDifferential) {
     
     if (!pidType->isIR) {   // Tape tracking mode
         /*
@@ -83,48 +86,67 @@ namespace DigitalPID {
         2: both off tape
       */
 
-      if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
-        // Left is off tape and Right is on tape
-        // TURN RIGHT
-        pidType->error = -1.0f;
-      } else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
-        // Left is on tape and Right is off tape
-        // TURN LEFT
-        pidType->error = 1.0f;
-      } else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
+      if(pidType->justEscapedIR){
+        pidType->error = 1.5f;
+        *applyDifferential = false;
+      }
+      else if(*left > pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
         // Left is off tape and Right is off tape
         // Look at previous error state and magnify it
         pidType->error = pidType->prevError * 2.0f;
+        *applyDifferential = true;
 
-      } else {
+      }
+      else if(*left > pidType->L_THRESHOLD && *right < pidType->R_THRESHOLD) {
+        // Left is off tape and Right is on tape
+        // TURN RIGHT
+        pidType->error = -1.0f;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+
+      } 
+      else if(*left < pidType->L_THRESHOLD && *right > pidType->R_THRESHOLD) {
+        // Left is on tape and Right is off tape
+        // TURN LEFT
+        pidType->error = 1.0f;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+
+      } 
+      else {
         // Both are on the tape
         // Go straight
         pidType->error = 0.0f;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+
       }
 
-    } else {
-      // IR tracking mode
+    } 
+    
+    else { // IR tracking mode
+
       // float_t averageAmplitude = (*left + *right) * 0.5f;
 
       //Dynamically change IR Threshold
-      pidType->IR_THRESHOLD = 3000;//-0.568f * averageAmplitude + 8300.0f;
+      //-0.568f * averageAmplitude + 8300.0f;
 
-      if(pidType->IR_THRESHOLD < 0){
-        pidType->IR_THRESHOLD = 0;
-      }
+      // if(pidType->IR_THRESHOLD < 0){
+      //   pidType->IR_THRESHOLD = 0;
+      // }
 
       if (*left - *right > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
-        Serial2.print("TURN LEFT!!! ");
+        Serial2.println("TURN LEFT!!! ");
       } else if (*right - *left > pidType->IR_THRESHOLD) {
         // TURN right
         pidType->error = -1.0f;
-        Serial2.print("TURN RIGHT!!! ");
+        Serial2.println("TURN RIGHT!!! ");
       } else if (abs(*left - *right) < pidType->IR_THRESHOLD) {
         // GO STRAIGHT
         pidType->error = 0.0f;
-        Serial2.print("STRAIGHT!!! ");
+        Serial2.println("STRAIGHT!!! ");
       }
 
     }
@@ -141,8 +163,6 @@ namespace DigitalPID {
   static void processOutput(float_t *output, PID *pidType, 
                               bool applyDifferential, Servo servo) {
 
-    u_int8_t duty_cycle = 0;
-
     //Limits output angle
     if(pidType->STRAIGHT_ANGLE + *output > pidType->MAX_ANGLE) {
       *output = pidType->MAX_ANGLE - pidType->STRAIGHT_ANGLE;
@@ -155,44 +175,41 @@ namespace DigitalPID {
 
       // duty_cycle = 20;
       if(!applyDifferential){
-        DriverMotors::startMotorsForwardRight(duty_cycle);
-        DriverMotors::startMotorsForwardLeft(duty_cycle);
+        DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
+        DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
       else { //Apply differential in the back
-        DriverMotors::startMotorsForwardRight(duty_cycle - duty_cycle * 0.75);
-        // DriverMotors::startMotorsForwardLeft(55);
+        DriverMotors::startMotorsForwardRight(20);
+        DriverMotors::startMotorsForwardLeft(45);
+        // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED * 0.6);
+        // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED);
       }
 
-      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
-      // display_handler.println(duty_cycle_print);
       servo.write(pidType->STRAIGHT_ANGLE + *output);
 
     } else if(*output > 0) {
 
       // duty_cycle = 20;
       if(!applyDifferential){
-        DriverMotors::startMotorsForwardRight(duty_cycle);
-        DriverMotors::startMotorsForwardLeft(duty_cycle);
+        DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
+        DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
       else { //Apply differential in the back
-        // DriverMotors::startMotorsForwardRight(55);
-        DriverMotors::startMotorsForwardLeft(duty_cycle - duty_cycle * 0.75);
+        DriverMotors::startMotorsForwardRight(45);
+        DriverMotors::startMotorsForwardLeft(20);
+        // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED);
+        // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED * 0.6);
       }
-
-      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
-      // display_handler.println(duty_cycle_print);
       servo.write(pidType->STRAIGHT_ANGLE + *output);
 
     } else {
       // duty_cycle = 40;
-      DriverMotors::startMotorsForwardRight(duty_cycle);
-      DriverMotors::startMotorsForwardLeft(duty_cycle);
 
-      // String duty_cycle_print = "Duty Cycle: " + String(duty_cycle);
-      // display_handler.println(duty_cycle_print);
+      DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
+      DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
+
+
       servo.write(pidType->STRAIGHT_ANGLE);
     }
   }
-
-
 }
