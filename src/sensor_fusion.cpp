@@ -30,6 +30,9 @@ namespace SensorFusion {
      * @return int8_t IMU initialization status
      */
     int8_t IMUInit() {
+
+        attachInterrupt(COLLISION_PIN, DriverMotors::stopMotorsBoth, RISING);
+
         // Initializing all vectors with dummy vector
         memcpy(sensor.theta_w, dummy, sizeof(dummy));
         memcpy(sensor.theta_am, dummy, sizeof(dummy));
@@ -118,5 +121,15 @@ namespace SensorFusion {
 
     void resetYaw() {
         IMU.resetYawAngle();
+    }
+
+    void stopCar() {
+        if(sensor.acc_x < -0.01f) {
+            digitalWrite(COLLISION_PIN, HIGH);
+            digitalWrite(TEST_PIN_LED, HIGH);
+        }
+        else{
+            digitalWrite(TEST_PIN_LED, LOW);
+        }
     }
 }

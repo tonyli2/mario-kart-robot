@@ -25,4 +25,6 @@ namespace SensorFusion {
     bool isGoingUpRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray);
     
     void resetYaw();
+
+    void stopCar();
 }
