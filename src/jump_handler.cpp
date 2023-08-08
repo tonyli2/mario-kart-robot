@@ -6,11 +6,11 @@ namespace JumpHandler {
     float_t rightMarker = 0.0f;
     float_t leftTapeSens = 0.0f;
     float_t rightTapeSens = 0.0f;
-    const float_t LM_THRESHOLD = 390.0f;
-    const float_t RM_THRESHOLD = 390.0f;
+    const float_t LM_THRESHOLD = 450.0f;
+    const float_t RM_THRESHOLD = 450.0f;
 
-    const float_t LTape_THRESHOLD = 390.0f;
-    const float_t RTape_THRESHOLD = 390.0f;
+    const float_t LTape_THRESHOLD = 450.0f;
+    const float_t RTape_THRESHOLD = 450.0f;
 
     const uint8_t sizeOfPitchArray = 10;
     float_t pitchArray[sizeOfPitchArray] = {0};
@@ -74,35 +74,55 @@ namespace JumpHandler {
         digitalWrite(JUMP_PIN, LOW);
     }
 
-    void afterJump(bool *doneTurn){
+    void turningSequence(bool *doneTurn, bool *goStraight, float_t desiredAngle) {
+        
+        uint32_t turnSequenceSpeed = 70;
+
+        if(*goStraight == true) {
+            DriverMotors::startMotorsForwardLeft(turnSequenceSpeed);
+            DriverMotors::startMotorsForwardRight(turnSequenceSpeed);
+            delay(850);
+            *goStraight = false;
+        }
 
         float_t * imuData = SensorFusion::IMUGetData();
 
-        Serial2.print("Roll ");
-        Serial2.print(imuData[0]);
-        Serial2.print("    Pitch ");
-        Serial2.print(imuData[1]);
-        Serial2.print("    Yaw ");
-        Serial2.println(imuData[2]);
+        // Serial2.print("Roll ");
+        // Serial2.print(imuData[0]);
+        // Serial2.print("    Pitch ");
+        // Serial2.print(imuData[1]);
+        // Serial2.print("    Yaw ");
+        // Serial2.println(imuData[2]);
 
-        uint32_t speed = 90;
-        if (imuData[2] <= calcIMUSteering(&speed)) {
-            Hivemind::testServo(117);
-            DriverMotors::startMotorsForwardLeft(35);
-            DriverMotors::startMotorsForwardRight(55);
-
-            *doneTurn = false;
+        if(desiredAngle >= 0) {
+            if (imuData[2] <= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
+                Hivemind::testServo(117);
+                DriverMotors::diffSteeringLeft();
+                *doneTurn = false;
+            }
+            else {
+                Hivemind::testServo(95);
+                DriverMotors::startMotorsForwardLeft(35);
+                DriverMotors::startMotorsForwardRight(35);
+                *doneTurn = true;
+            }
         }
-        
         else {
-            Hivemind::testServo(95);
-            DriverMotors::stopMotorsBoth();
-
-            *doneTurn = true;
+            if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
+                Hivemind::testServo(66);
+                DriverMotors::diffSteeringRight();
+                *doneTurn = false;
+            }
+            else {
+                Hivemind::testServo(95);
+                DriverMotors::startMotorsForwardLeft(35);
+                DriverMotors::startMotorsForwardRight(35);
+                *doneTurn = true;
+            }
         }
     }
 
-    float_t calcIMUSteering(uint32_t *speed) {
-        return 180.0f - (0.5006f * *speed - 14.176f) - 15.0f;
+    float_t calcIMUSteering(uint32_t speed, float_t desiredAngle) {
+        return desiredAngle - (0.2506f * speed - 14.176f) - 15.0f;
     }
 }

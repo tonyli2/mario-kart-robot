@@ -71,12 +71,16 @@ namespace DriverMotors{
 
     void diffSteeringLeft(){
         DriverMotors::startMotorsForwardRight(55);
-        DriverMotors::startMotorsForwardLeft(35);
+        DriverMotors::startMotorsBackwardLeft(20);
     }
 
     void diffSteeringRight(){
-        DriverMotors::startMotorsForwardRight(35);
+        DriverMotors::startMotorsBackwardRight(20);
         DriverMotors::startMotorsForwardLeft(55);
     }
 
+    void iRDiffLeft(){
+        DriverMotors::startMotorsForwardRight(0);
+        DriverMotors::startMotorsBackwardLeft(50);
+    }
 }

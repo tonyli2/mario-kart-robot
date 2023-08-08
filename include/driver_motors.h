@@ -15,4 +15,6 @@ namespace DriverMotors{
     void diffSteeringLeft();
 
     void diffSteeringRight();
+
+    void iRDiffLeft();
 }

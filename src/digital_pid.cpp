@@ -22,37 +22,28 @@ namespace DigitalPID {
 
     // Calculate the elapsed time since the last iteration
     pidType->currTime = millis();
-    pidType->dt = pidType->currTime - pidType->prevTime;
+    pidType->dt = pidType->currTime - pidType->t0;
 
-    // Read the current value (Low on Tape, High elsewhere)\
+    // Read the current value (Low on Tape, High elsewhere)
     // If in IR tracking mode, use tape sensor variables (not marker sensor) to store IR readings
     if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftTapeInput), 
                     &(pidType->rightTapeInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
-          
-      digitalWrite(TEST_PIN_LED, HIGH);
     }
     else if(!pidType->isIR){
-      // digitalWrite(TEST_PIN_LED, LOW);
-      // Serial2.println(" TAPE TAPE TAPE TAPE ");
+      
       pidType->leftTapeInput    = analogRead(LEFT_TAPE_PIN);
       pidType->leftMarkerInput  = analogRead(MARKER_SENSE_LEFT);
       pidType->rightTapeInput   = analogRead(RIGHT_TAPE_PIN);
       pidType->rightMarkerInput = analogRead(MARKER_SENSE_RIGHT);
-
-      Serial2.print("LT: ");
-      Serial2.print(pidType->leftTapeInput);
-      Serial2.print("LM: ");
-      Serial2.print(pidType->leftMarkerInput);
-      Serial2.print("RT: ");
-      Serial2.println(pidType->rightTapeInput);
-      Serial2.print("RM: ");
-      Serial2.print(pidType->rightMarkerInput);
     
-
     }
 
     // Calculate the error term
     calcError(pidType, &applyDifferential);
+
+    if (pidType->error != pidType->prevError) {
+      pidType->t0 = millis();
+    }
 
     // Calculate the integral term
     pidType->integral += pidType->error * pidType->dt;
@@ -69,6 +60,20 @@ namespace DigitalPID {
     // Calculate the PID output
     pidType->output = pidType->Kp * pidType->error + pidType->Ki * pidType->integral 
                       + pidType->Kd * pidType->derivative;
+
+    // Serial2.print(" Kd * derivative: ");
+    // Serial2.println(pidType-> Kd * pidType->derivative);
+    // Serial2.println("tester");
+
+    // if (pidType->error != pidType->prevError) {
+    //   Serial2.print(pidType->error);
+    //   Serial2.print(", ");
+    //   Serial2.print(pidType->prevError);
+    //   Serial2.print(", ");
+    //   Serial2.print(pidType->dt);
+    //   Serial2.print(", ");
+    //   Serial2.println(pidType->Kd * pidType->derivative);
+    // }
 
     // Update the previous error and time for the next iteration
     pidType->prevError = pidType->error;
@@ -93,20 +98,65 @@ namespace DigitalPID {
         2: both off tape
       */
 
-      if(pidType->justEscapedIR){
-        pidType->error = 1.5f;
-        *applyDifferential = false;
-      }
-      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
-              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+
+      // if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
+
+      //   Serial2.print(" LM BLACK: ");
+      //   Serial2.print(pidType->leftMarkerInput);
+
+      // }
+      // else{
+      //   Serial2.print(" LM WHITE: ");
+      //   Serial2.print(pidType->leftMarkerInput);
+      // }
+
+
+      // if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
+      //   Serial2.print(" LT BLACK: ");
+      //   Serial2.print(pidType->leftTapeInput);
+      // }
+      // else{
+      //   Serial2.print(" LT WHITE: ");
+      //   Serial2.print(pidType->leftTapeInput);
+      // }
+      // if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
+      //   Serial2.print(" RT BLACK: ");
+      //   Serial2.print(pidType->rightTapeInput);
+      // }
+      // else{
+      //   Serial2.print(" RT WHITE: ");
+      //   Serial2.print(pidType->rightTapeInput);
+      // }
+
+      // if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
+      //   Serial2.print(" RM BLACK: ");
+      //   Serial2.println(pidType->rightMarkerInput);
+      // }
+      // else{
+      //   Serial2.print(" RM WHITE: ");
+      //   Serial2.println(pidType->rightMarkerInput);
+      // }
+      
+      if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
+              && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
         // All four sensors are off the tape
         // Look at previous error state and magnify it
-        pidType->error = pidType->prevError * 2.0f;
-        *applyDifferential = true;
+        if(pidType->prevError < 0){
+          pidType->error = -2.0f;
+          *applyDifferential = true;
+        }
+        else if(pidType->prevError > 0){
+          pidType->error = 2.0f;
+          *applyDifferential = true;
+        }
+        else{
+          pidType->error = 0.0f;
+          *applyDifferential = false;
+        }
 
       }
-      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
-              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->R_THRESHOLD) {
+      else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
+              && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->RM_THRESHOLD) {
         // Left marker, left tape, right tape are off; right marker is on
         // TURN RIGHT by a big amount
         pidType->error = -1.0f;
@@ -114,17 +164,17 @@ namespace DigitalPID {
         pidType->justEscapedIR = false;
 
       } 
-      else if(pidType->leftMarkerInput > pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
-              && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->R_THRESHOLD) {
+      else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
+              && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->RM_THRESHOLD) {
         // Left marker and left tape are off; right tape and marker are on
         // TURN RIGHT by a small amount
         pidType->error = -0.5f;
         *applyDifferential = false;
         pidType->justEscapedIR = false;
 
-      } 
-      else if(pidType->leftMarkerInput < pidType->L_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
-              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+      }
+      else if(pidType->leftMarkerInput < pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
+              && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
         // Left marker and left tape are on; right tape and marker are off
         // TURN LEFT by a small amount
         pidType->error = 0.5f;
@@ -132,8 +182,8 @@ namespace DigitalPID {
         pidType->justEscapedIR = false;
 
       }
-      else if(pidType->leftMarkerInput < pidType->L_THRESHOLD && pidType->leftTapeInput > pidType->L_THRESHOLD
-              && pidType->rightTapeInput > pidType->R_THRESHOLD && pidType->rightMarkerInput > pidType->R_THRESHOLD) {
+      else if(pidType->leftMarkerInput < pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
+              && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
         // Left marker is on; left tape, right tape and right marker are off
         // TURN LEFT by a big amount
         pidType->error = 1.0f;
@@ -141,14 +191,82 @@ namespace DigitalPID {
         pidType->justEscapedIR = false;
 
       }
-      else {
-        // All four on the tape
+      else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
+              && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD){
+        // Only middle two are on tape
         // Go straight
         pidType->error = 0.0f;
         *applyDifferential = false;
         pidType->justEscapedIR = false;
-
+        
       }
+      // else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
+      //         && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
+      //   // Intermediate state where only left tape reads black
+      //   // Turn left
+      //   pidType->error = 0.5f;
+      //   *applyDifferential = false;
+      //   pidType->justEscapedIR = false;
+      // }
+      // else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
+      //         && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
+      //   // Intermediate state where only right tape reads black
+      //   // TURN right
+
+      //   pidType->error = -0.5f;
+      //   *applyDifferential = false;
+      //   pidType->justEscapedIR = false;
+
+      // }
+
+      else if(pidType->leftMarkerInput < pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
+              && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->RM_THRESHOLD) {
+        
+        pidType->error = 0;
+        *applyDifferential = false;
+        pidType->justEscapedIR = false;
+      }
+      else{
+        pidType->error = pidType->prevError;          
+      }
+
+      // if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
+
+      //   Serial2.print(" LM: ");
+      //   Serial2.print("BLACK");
+
+      // }
+      // else{
+      //   Serial2.print(" LM: ");
+      //   Serial2.print("WHITE");
+      // }
+
+
+      // if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
+      //   Serial2.print(" LT: ");
+      //   Serial2.print(" BLACK ");
+      // }
+      // else{
+      //   Serial2.print(" LT: ");
+      //   Serial2.print(" WHITE ");
+
+      // }
+      // if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
+      //   Serial2.print(" RT: ");
+      //   Serial2.print(" BLACK ");
+      // }
+      // else{
+      //   Serial2.print(" RT: ");
+      //   Serial2.print(" WHITE ");
+      // }
+      // if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
+      //   Serial2.print(" RM: ");
+      //   Serial2.println("BLA`CK");
+      // }
+      // else{
+      //   Serial2.print(" RM: ");
+      //   Serial2.println(" WHITE ");
+      // }
 
     } 
     
@@ -166,15 +284,15 @@ namespace DigitalPID {
       if (pidType->leftTapeInput - pidType->rightTapeInput > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
-        Serial2.println("TURN LEFT!!! ");
+        // Serial2.println("TURN LEFT!!! ");
       } else if (pidType->rightTapeInput - pidType->leftTapeInput > pidType->IR_THRESHOLD) {
         // TURN right
         pidType->error = -1.0f;
-        Serial2.println("TURN RIGHT!!! ");
+        // Serial2.println("TURN RIGHT!!! ");
       } else if (abs(pidType->leftTapeInput - pidType->rightTapeInput) < pidType->IR_THRESHOLD) {
         // GO STRAIGHT
         pidType->error = 0.0f;
-        Serial2.println("STRAIGHT!!! ");
+        // Serial2.println("STRAIGHT!!! ");
       }
 
     }
@@ -206,8 +324,7 @@ namespace DigitalPID {
         DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
       else { //Apply differential in the back
-        DriverMotors::startMotorsForwardRight(20);
-        DriverMotors::startMotorsForwardLeft(45);
+        DriverMotors::diffSteeringRight();
         // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED * 0.6);
         // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED);
       }
@@ -222,8 +339,7 @@ namespace DigitalPID {
         DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
       else { //Apply differential in the back
-        DriverMotors::startMotorsForwardRight(45);
-        DriverMotors::startMotorsForwardLeft(20);
+        DriverMotors::diffSteeringLeft();
         // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED);
         // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED * 0.6);
       }

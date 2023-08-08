@@ -31,7 +31,7 @@ namespace SensorFusion {
      */
     int8_t IMUInit() {
 
-        attachInterrupt(COLLISION_PIN, DriverMotors::stopMotorsBoth, RISING);
+        // attachInterrupt(COLLISION_PIN, DriverMotors::stopMotorsBoth, RISING);
 
         // Initializing all vectors with dummy vector
         memcpy(sensor.theta_w, dummy, sizeof(dummy));

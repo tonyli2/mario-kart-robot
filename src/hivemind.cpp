@@ -7,14 +7,17 @@ namespace Hivemind
     // Testing
     bool doneTurn = false;
     bool isLapOne = true;
+    bool isGoingStraight = true;
 
     //TODO move this to a suitable location
     DigitalPID::PID steering_pid = {
         .Kp                 = 15.0f,
         .Ki                 = 0.0f,
         .Kd                 = 0.0f,
-        .L_THRESHOLD        = 500.0f,
-        .R_THRESHOLD        = 500.0f,
+        .L_THRESHOLD        = 450.0f,
+        .R_THRESHOLD        = 450.0f,
+        .LM_THRESHOLD       = 450.0f,
+        .RM_THRESHOLD       = 450.0f,
         .STRAIGHT_ANGLE     = 95,
         .MAX_INTEGRAL       = 100.0f,
         .leftTapeInput      = 0.0f,
@@ -28,19 +31,20 @@ namespace Hivemind
         .output             = 0.0f,
         .currTime           = 0,
         .prevTime           = 0,
+        .t0                 = 0,
         .dt                 = 0,
         .MAX_ANGLE          = 117,
-        .MIN_ANGLE          = 73,
+        .MIN_ANGLE          = 66,
         .isIR               = false,
-        .TURNING_SPEED      = 55,
-        .STRAIGHT_SPEED     = 30,
+        .TURNING_SPEED      = 0,
+        .STRAIGHT_SPEED     = 70,
         .justEscapedIR      = false,
     };
 
     DigitalPID::PID ir_pid = {
-        .Kp                 = 15.0f,
+        .Kp                 = 10.0f,
         .Ki                 = 0.0f,
-        .Kd                 = 12.5f,
+        .Kd                 = 4000.0f,
         .IR_THRESHOLD       = 1500.0f,
         .STRAIGHT_ANGLE     = 95,
         .MAX_INTEGRAL       = 100.0f,
@@ -57,7 +61,7 @@ namespace Hivemind
         .prevTime           = 0,
         .dt                 = 0,
         .MAX_ANGLE          = 117,
-        .MIN_ANGLE          = 73,
+        .MIN_ANGLE          = 66,
         .isIR               = true,
         .TURNING_SPEED      = 40,
         .STRAIGHT_SPEED     = 55,
@@ -67,25 +71,28 @@ namespace Hivemind
     void wakeUpHivemind() {
 
         // Treat lap 1 special
-        // if (isLapOne) {
-        //     float_t *attitude_vec = SensorFusion::IMUGetData();
-            
-        //     if (abs(attitude_vec[2]) <= 90) {
-        //         // If starting at left (pos 1), immediately turn left
-        //         if (leftStartPos) {
-        //             servo.write(117);
-        //             DriverMotors::diffSteeringLeft();
-        //         }
-        //         // If starting at right (pos 2), immediately turn right
-        //         else {
-        //             servo.write(73);
-        //             DriverMotors::diffSteeringRight();
-        //         }
-        //         return;
-        //     }
+        if (!doneTurn && digitalRead(START_POSITION) == HIGH) {
+            JumpHandler::turningSequence(&doneTurn, &isGoingStraight, 45.0f);
+            // isLapOne = false;
+        }
+        else if(!doneTurn && digitalRead(START_POSITION) == LOW) {
+            JumpHandler::turningSequence(&doneTurn, &isGoingStraight, -45.0f);
+        }
 
-        //     DigitalPID::applyPID(&ir_pid, servo);
+
+        if(doneTurn && !canExitIRFollowing()) {
+            digitalWrite(TEST_PIN_LED, LOW);
+            DigitalPID::applyPID(&ir_pid, servo);
+        }
+        else if(doneTurn && canExitIRFollowing()) {
+            digitalWrite(TEST_PIN_LED, HIGH);
+            DigitalPID::applyPID(&steering_pid, servo);
+        }
+        // else if(isLapOne && START_POSITION == LOW) {
+        //     JumpHandler::turningSequence(doneTurn, false, -90.0f);
+        //     isLapOne = false;
         // }
+        
 
         // if(JumpHandler::isReadyToJump()){
         //     //Trigger Jump Handler Interrupt
@@ -99,20 +106,45 @@ namespace Hivemind
         // }
         // DigitalPID::applyPID(&steering_pid, servo);
 
-        Hivemind::testMotors();
-        SensorFusion::IMUGetData();
-        SensorFusion::stopCar();
+        // Serial2.print(" Roll ");
+        // Serial2.print(attitude_vec[0]);
 
+        // Serial2.print("     Pitch ");
+        // Serial2.print(attitude_vec[1]);
+
+        // Serial2.print("     Yaw ");
+        // Serial2.println(attitude_vec[2]);
+        
+        // if(isLapOne){
+        //     testMotors();
+        //     isLapOne = false;
+        // }
+        // float_t *attitude_vec = SensorFusion::IMUGetData();
+
+        // if(attitude_vec[2] < 160){
+        //     testServo(117);
+        //     DriverMotors::diffSteeringLeft();
+        // }
+        // else{
+        //     testServo(95);
+        //     DriverMotors::stopMotorsBoth();
+        // }
+
+        // SensorFusion::IMUGetData();
+        // SensorFusion::stopCar();
+
+        // DigitalPID::applyPID(&steering_pid, servo);
+
+
+        // Loops 
         // if(!doneTurn) {
-        //     JumpHandler::afterJump(&doneTurn);
+        //     JumpHandler::afterJump(&doneTurn, &isGoingStraight);
         // }
         // else if(doneTurn && !canExitIRFollowing()) {
         //     DigitalPID::applyPID(&ir_pid, servo);
         // }
         // else if(doneTurn && canExitIRFollowing()) {
-        //     // DigitalPID::applyPID(&steering_pid, servo);
-        //     Hivemind::testServo(steering_pid.STRAIGHT_ANGLE);
-        //     DriverMotors::stopMotorsBoth();
+        //     DigitalPID::applyPID(&steering_pid, servo);
         // }
 
 
@@ -125,12 +157,12 @@ namespace Hivemind
         //         digitalWrite(INTERRUPT_PIN, HIGH);
         //     }
         // }
-        if(steering_pid.justEscapedIR == true){
-            digitalWrite(TEST_PIN_LED, HIGH);
-        }
-        else{
-            digitalWrite(TEST_PIN_LED, LOW);
-        }
+        // if(steering_pid.justEscapedIR == true){
+        //     digitalWrite(TEST_PIN_LED, HIGH);
+        // }
+        // else{
+        //     digitalWrite(TEST_PIN_LED, LOW);
+        // }
 
     }
 
@@ -145,7 +177,6 @@ namespace Hivemind
 
         DigitalPID::setupServo(servo);
         SensorFusion::IMUInit();
-
         JumpHandler::setupJumpHandler();
         // int8_t leftOrRight = digitalRead(START_POSITION);
         // if (leftOrRight == LOW) {
@@ -157,14 +188,16 @@ namespace Hivemind
         // }
     }
 
-    void testServo(uint8_t angle){
+    void testServo(uint8_t angle) {
         servo.write(angle);
-        // for(int i = 73; i < 118; i++){
+        // for(int i = 66; i < 118; i++){
         //     servo.write(i);
+        //     Serial2.println(i);
         //     delay(15);
         // }
-        // for(int i = 117; i > 72; i--){
+        // for(int i = 117; i > 65; i--){
         //     servo.write(i);
+
         //     delay(15);
         // }
 
@@ -172,9 +205,9 @@ namespace Hivemind
 
     void testMotors(){
 
-        DriverMotors::startMotorsForwardLeft(30);
-        DriverMotors::startMotorsForwardRight(30);
-
+        DriverMotors::startMotorsForwardLeft(90);
+        DriverMotors::startMotorsForwardRight(90);
+        delay(1500);
         // DriverMotors::stopMotorsBoth();
 
         // delay(10000);      
@@ -182,11 +215,12 @@ namespace Hivemind
 
     bool canExitIRFollowing () {
 
-        double_t escapeThreshold = 13600;
+        double_t escapeThreshold = 10000;
 
         if(ir_pid.leftTapeInput > escapeThreshold && 
             ir_pid.rightTapeInput > escapeThreshold){
 
+            steering_pid.prevError = 2.0f;
             steering_pid.justEscapedIR = true;
             return steering_pid.justEscapedIR;
         }

@@ -10,8 +10,10 @@ namespace DigitalPID {
         const float_t Kp;
         const float_t Ki;
         const float_t Kd;
-        const float_t L_THRESHOLD;      // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
-        const float_t R_THRESHOLD;      // ADC Threshold voltage (0-1023 analog maps to 0 - 3.3V)
+        const float_t L_THRESHOLD;      // ADC Threshold voltage for left Tape (0-1023 analog maps to 0 - 3.3V)
+        const float_t R_THRESHOLD;      // ADC Threshold voltage for right Tape (0-1023 analog maps to 0 - 3.3V)
+        const float_t LM_THRESHOLD;     // ADC Threshold voltage for left marker
+        const float_t RM_THRESHOLD;     // ADC Threshold voltage for right marker
                                         // On white approx 600
                                         // On black approx 350-450
         float_t IR_THRESHOLD;           // Difference between l & R IR signal for PID
@@ -28,6 +30,7 @@ namespace DigitalPID {
         float_t output;                 // PID output
         uint64_t currTime;
         uint64_t prevTime;
+        uint64_t t0;
         uint64_t dt;
         const int8_t MAX_ANGLE;         // Servo max turning angle
         const int8_t MIN_ANGLE;         // Servo min turning angle
