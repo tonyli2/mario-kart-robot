@@ -83,4 +83,9 @@ namespace DriverMotors{
         DriverMotors::startMotorsForwardRight(0);
         DriverMotors::startMotorsBackwardLeft(50);
     }
+
+    void reverseMotorBoth(uint8_t dutyCycle) {
+        DriverMotors::startMotorsBackwardLeft(dutyCycle);
+        DriverMotors::startMotorsBackwardRight(dutyCycle);
+    }
 }

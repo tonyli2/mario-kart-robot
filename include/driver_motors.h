@@ -12,6 +12,8 @@ namespace DriverMotors{
 
     void stopMotorsBoth();
 
+    void reverseMotorBoth(uint8_t dutyCycle);
+
     void diffSteeringLeft();
 
     void diffSteeringRight();

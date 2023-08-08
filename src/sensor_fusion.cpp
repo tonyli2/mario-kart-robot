@@ -31,7 +31,7 @@ namespace SensorFusion {
      */
     int8_t IMUInit() {
 
-        // attachInterrupt(COLLISION_PIN, DriverMotors::stopMotorsBoth, RISING);
+        attachInterrupt(COLLISION_PIN, Hivemind::collision, RISING);
 
         // Initializing all vectors with dummy vector
         memcpy(sensor.theta_w, dummy, sizeof(dummy));
@@ -96,6 +96,9 @@ namespace SensorFusion {
         arm_add_f32(sensor.theta_w_new, sensor.theta_am_new, sensor.theta_final, IMU_VEC_SIZE);
         arm_scale_f32(sensor.theta_final, 180 / PI, sensor.theta_final, IMU_VEC_SIZE);
 
+        // Check if acceleration drops due to collision
+        stopCar();
+
         return sensor.theta_final;
     }
     
@@ -124,12 +127,8 @@ namespace SensorFusion {
     }
 
     void stopCar() {
-        if(sensor.acc_x < -0.01f) {
+        if(sensor.acc_x < -0.9f) {
             digitalWrite(COLLISION_PIN, HIGH);
-            digitalWrite(TEST_PIN_LED, HIGH);
-        }
-        else{
-            digitalWrite(TEST_PIN_LED, LOW);
         }
     }
 }

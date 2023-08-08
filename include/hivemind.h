@@ -10,6 +10,8 @@ namespace Hivemind
 
     bool canExitIRFollowing();
 
+    void collision();
+
 } // namespace Hivemind
 
 

@@ -8,6 +8,7 @@ namespace Hivemind
     bool doneTurn = false;
     bool isLapOne = true;
     bool isGoingStraight = true;
+    bool crash = false;
 
     //TODO move this to a suitable location
     DigitalPID::PID steering_pid = {
@@ -69,6 +70,19 @@ namespace Hivemind
     };
 
     void wakeUpHivemind() {
+
+        // If a collision takes place, reverse the car briefly and continue the current task
+        if (collision) {
+            DriverMotors::reverseMotorBoth(50);
+            digitalWrite(TEST_PIN_LED, HIGH);
+            delay(1000);
+            crash = false;
+            digitalWrite(COLLISION_PIN, LOW);
+            digitalWrite(TEST_PIN_LED, LOW);
+
+            // Exit the current loop for the next iteration
+            return;
+        }
 
         // Treat lap 1 special
         if (!doneTurn && digitalRead(START_POSITION) == HIGH) {
@@ -228,6 +242,10 @@ namespace Hivemind
             steering_pid.justEscapedIR = false;
             return steering_pid.justEscapedIR;
         }
+    }
+
+    void collision() {
+        crash = true;
     }
 
 } // namespace Hivemind
