@@ -123,6 +123,13 @@ namespace JumpHandler {
     }
 
     float_t calcIMUSteering(uint32_t speed, float_t desiredAngle) {
-        return desiredAngle - (0.2506f * speed - 14.176f) - 15.0f;
+        if(desiredAngle >= 0) {
+            return desiredAngle - (0.2506f * speed - 14.176f) - 15.0f;
+        }
+
+        else {
+            return desiredAngle + (0.2506f * speed - 14.176f) + 15.0f;
+        }
+        
     }
 }
