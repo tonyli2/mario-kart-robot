@@ -51,3 +51,5 @@
     False = Starting position Two
 */
 #define START_POSITION                  PA11
+
+#define START_LAP                       PA15

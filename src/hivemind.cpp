@@ -78,14 +78,11 @@ namespace Hivemind
         else if(!doneTurn && digitalRead(START_POSITION) == LOW) {
             JumpHandler::turningSequence(&doneTurn, &isGoingStraight, -45.0f);
         }
-
-
         if(doneTurn && !canExitIRFollowing()) {
             digitalWrite(TEST_PIN_LED, LOW);
             DigitalPID::applyPID(&ir_pid, servo);
         }
-        else if(doneTurn && canExitIRFollowing()) {
-            digitalWrite(TEST_PIN_LED, HIGH);
+        else if(doneTurn && steering_pid.justEscapedIR) {
             DigitalPID::applyPID(&steering_pid, servo);
         }
         // else if(isLapOne && START_POSITION == LOW) {
@@ -174,6 +171,8 @@ namespace Hivemind
         pinMode(START_POSITION, INPUT_PULLDOWN); 
         pinMode(COLLISION_PIN, OUTPUT);
         pinMode(JUMP_PIN, OUTPUT);
+        pinMode(START_LAP, INPUT_PULLDOWN);
+        pinMode(PC13, OUTPUT);
 
         DigitalPID::setupServo(servo);
         SensorFusion::IMUInit();
@@ -215,18 +214,20 @@ namespace Hivemind
 
     bool canExitIRFollowing () {
 
-        double_t escapeThreshold = 10000;
+        double_t escapeThreshold = 10400;
 
         if(ir_pid.leftTapeInput > escapeThreshold && 
             ir_pid.rightTapeInput > escapeThreshold){
 
             steering_pid.prevError = 2.0f;
             steering_pid.justEscapedIR = true;
-            return steering_pid.justEscapedIR;
+            // return steering_pid.justEscapedIR;
+            return true;
         }
         else{
             steering_pid.justEscapedIR = false;
-            return steering_pid.justEscapedIR;
+            // return steering_pid.justEscapedIR;
+            return false;
         }
     }
 

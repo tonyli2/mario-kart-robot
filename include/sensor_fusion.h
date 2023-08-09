@@ -22,7 +22,7 @@ namespace SensorFusion {
 
     float_t * IMUGetData();
 
-    bool isGoingUpRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray);
+    bool isOnRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray);
     
     void resetYaw();
 

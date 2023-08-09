@@ -100,7 +100,7 @@ namespace SensorFusion {
     }
     
 
-    bool isGoingUpRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray) {
+    bool isOnRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray) {
 
         const float_t angleThreshold = 9.0f;
 

@@ -1,6 +1,12 @@
 #include <config.h>
 
 namespace DigitalPID {
+
+
+  // TODO figure out where to put these
+  const uint8_t sizeOfPitchArray = 10;
+  float_t pitchArray[sizeOfPitchArray] = {0};
+  uint8_t pitchCounter = 0;
   
   /**
    * @brief Attaching servo to the specified pin
@@ -141,7 +147,14 @@ namespace DigitalPID {
               && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
         // All four sensors are off the tape
         // Look at previous error state and magnify it
-        if(pidType->prevError < 0){
+        if(pidType->justEscapedIR && SensorFusion::isOnRamp(pitchArray, pitchCounter, sizeOfPitchArray)){
+            pidType->error = 0.0f;
+            pidType->prevError = 0.0f;
+            *applyDifferential = false;
+            pidType->justEscapedIR = false;
+        }
+
+        else if(pidType->prevError < 0){
           pidType->error = -2.0f;
           *applyDifferential = true;
         }
@@ -315,8 +328,12 @@ namespace DigitalPID {
       pidType->output = pidType->MIN_ANGLE - pidType->STRAIGHT_ANGLE;
     }
 
+    if(pidType->justEscapedIR) {
+      DriverMotors::iRDiffLeft();
+    }
+
     // Process servo angle from PID output
-    if(pidType->output < 0) {
+    else if(pidType->output < 0) {
 
       // duty_cycle = 20;
       if(!applyDifferential){

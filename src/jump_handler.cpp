@@ -34,7 +34,7 @@ namespace JumpHandler {
         leftTapeSens = analogRead(LEFT_TAPE_PIN);
         rightTapeSens = analogRead(RIGHT_TAPE_PIN);
 
-        isGoingUpRamp = SensorFusion::isGoingUpRamp(pitchArray, pitchCounter, sizeOfPitchArray);
+        isGoingUpRamp = SensorFusion::isOnRamp(pitchArray, pitchCounter, sizeOfPitchArray);
 
         bool readyToJump = 
             leftMarker < LM_THRESHOLD && 
@@ -81,11 +81,13 @@ namespace JumpHandler {
         if(*goStraight == true) {
             DriverMotors::startMotorsForwardLeft(turnSequenceSpeed);
             DriverMotors::startMotorsForwardRight(turnSequenceSpeed);
-            delay(850);
+            delay(950);
             *goStraight = false;
         }
 
         float_t * imuData = SensorFusion::IMUGetData();
+        // Serial2.print("Yaw angle: ");
+        // Serial2.println(imuData[2]);
 
         // Serial2.print("Roll ");
         // Serial2.print(imuData[0]);
@@ -124,11 +126,11 @@ namespace JumpHandler {
 
     float_t calcIMUSteering(uint32_t speed, float_t desiredAngle) {
         if(desiredAngle >= 0) {
-            return desiredAngle - (0.2506f * speed - 14.176f) - 15.0f;
+            return desiredAngle - (0.2506f * speed - 14.176f) - 20.0f;
         }
 
         else {
-            return desiredAngle + (0.2506f * speed - 14.176f) + 15.0f;
+            return desiredAngle + (0.2506f * speed - 14.176f) + 20.0f;
         }
         
     }
