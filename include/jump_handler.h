@@ -8,11 +8,11 @@ namespace JumpHandler {
     extern const float_t RM_THRESHOLD;
     extern bool isGoingUpRamp;
 
-    bool isReadyToJump();
+    bool hasFoundFourTape(bool isJumping);
 
     void setupJumpHandler();
 
-    void jumpHandler();
+    void jumpHandler(bool *doneTurn, bool *isGoingStraight);
 
     void turningSequence(bool *doneTurn, bool *goStraight, float_t desiredAngle);
 

@@ -12,12 +12,6 @@ namespace JumpHandler {
     const float_t LTape_THRESHOLD = 450.0f;
     const float_t RTape_THRESHOLD = 450.0f;
 
-    const uint8_t sizeOfPitchArray = 10;
-    float_t pitchArray[sizeOfPitchArray] = {0};
-    uint8_t pitchCounter = 0;
-
-    bool isGoingUpRamp = false;
-
     /**
      * @brief determines whether the robot has detected the tape marker that
      * indicates an impending jump, and whether it should trigger the
@@ -26,7 +20,7 @@ namespace JumpHandler {
      * @return true the robot is supposed to trigger the jump handler sequence
      * @return false the robot is not supposed to trigger the jump handler sequence
      */
-    bool isReadyToJump(){
+    bool hasFoundFourTape(bool isJumping) {
         
         leftMarker = analogRead(MARKER_SENSE_LEFT);
         rightMarker = analogRead(MARKER_SENSE_RIGHT);
@@ -34,16 +28,26 @@ namespace JumpHandler {
         leftTapeSens = analogRead(LEFT_TAPE_PIN);
         rightTapeSens = analogRead(RIGHT_TAPE_PIN);
 
-        isGoingUpRamp = SensorFusion::isOnRamp(pitchArray, pitchCounter, sizeOfPitchArray);
+        if(isJumping) {
+            // Jumping mode
+            bool readyToJump = 
+                leftMarker < LM_THRESHOLD &&
+                rightMarker < RM_THRESHOLD &&
+                leftTapeSens < LTape_THRESHOLD &&
+                rightTapeSens < RTape_THRESHOLD;
 
-        bool readyToJump = 
-            leftMarker < LM_THRESHOLD && 
-            rightMarker < RM_THRESHOLD &&
-            leftTapeSens < LTape_THRESHOLD &&
-            rightTapeSens < RTape_THRESHOLD &&
-            isGoingUpRamp;
+            return readyToJump;
+        }
+        else {
+            // Coasting state
+            bool seenTape = 
+                leftMarker < LM_THRESHOLD || 
+                rightMarker < RM_THRESHOLD ||
+                leftTapeSens < LTape_THRESHOLD ||
+                rightTapeSens < RTape_THRESHOLD;
 
-        return readyToJump;
+            return seenTape;
+        }
     }
 
     /**
@@ -52,7 +56,9 @@ namespace JumpHandler {
      * 
      */
     void setupJumpHandler() {
-        attachInterrupt(JUMP_PIN, jumpHandler, RISING);
+
+        //TODO remove
+        // attachInterrupt(JUMP_PIN, jumpHandler, RISING);
     }
 
     /**
@@ -60,18 +66,21 @@ namespace JumpHandler {
      * required before and after bridge jump
      * 
      */
-    void jumpHandler() {
+    void jumpHandler(bool *doneTurn, bool *goStraight) {
         
         // TODO code for managing bridge jump here
-        DriverMotors::stopMotorsBoth();
+        // DriverMotors::stopMotorsBoth();
 
-        // 1. Go Straight off bridge
-        // DriverMotors::startMotorsForward(30);
+        // 1. Reset IMU yaw angle
+        SensorFusion::resetYaw();
 
-        // 2. Trigger IMU sequence 
+        // 2. Go Straight off bridge
+        DriverMotors::startMotorsForwardLeft(70);
+        DriverMotors::startMotorsForwardRight(70);
 
-        // 3. Reset Interrupt Pin
-        digitalWrite(JUMP_PIN, LOW);
+        delay(500);
+        // 3. Trigger IMU sequence
+        turningSequence(doneTurn, goStraight, 180);
     }
 
     void turningSequence(bool *doneTurn, bool *goStraight, float_t desiredAngle) {
@@ -79,9 +88,10 @@ namespace JumpHandler {
         uint32_t turnSequenceSpeed = 70;
 
         if(*goStraight == true) {
+            Hivemind::testServo(90);
             DriverMotors::startMotorsForwardLeft(turnSequenceSpeed);
             DriverMotors::startMotorsForwardRight(turnSequenceSpeed);
-            delay(950);
+            delay(900);
             *goStraight = false;
         }
 
@@ -97,7 +107,7 @@ namespace JumpHandler {
         // Serial2.println(imuData[2]);
 
         if(desiredAngle >= 0) {
-            if (imuData[2] <= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
+            if (imuData[2] <= (calcIMUSteering(turnSequenceSpeed, desiredAngle) - 20)) {
                 Hivemind::testServo(117);
                 DriverMotors::diffSteeringLeft();
                 *doneTurn = false;
@@ -109,19 +119,20 @@ namespace JumpHandler {
                 *doneTurn = true;
             }
         }
-        else {
-            if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
-                Hivemind::testServo(66);
-                DriverMotors::diffSteeringRight();
-                *doneTurn = false;
-            }
-            else {
-                Hivemind::testServo(95);
-                DriverMotors::startMotorsForwardLeft(35);
-                DriverMotors::startMotorsForwardRight(35);
-                *doneTurn = true;
-            }
-        }
+        // TODO add back if ready for start position 2
+        // else {
+        //     if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
+        //         Hivemind::testServo(66);
+        //         DriverMotors::diffSteeringRight();
+        //         *doneTurn = false;
+        //     }
+        //     else {
+        //         Hivemind::testServo(95);
+        //         DriverMotors::startMotorsForwardLeft(35);
+        //         DriverMotors::startMotorsForwardRight(35);
+        //         *doneTurn = true;
+        //     }
+        // }
     }
 
     float_t calcIMUSteering(uint32_t speed, float_t desiredAngle) {

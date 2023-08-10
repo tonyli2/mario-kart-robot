@@ -9,6 +9,11 @@ namespace Hivemind
     bool isLapOne = true;
     bool isGoingStraight = true;
 
+    // Coasting timer
+    uint32_t currentTime = 0;
+    uint32_t prevTime = millis();
+    uint32_t startIRTime = 0;
+
     //TODO move this to a suitable location
     DigitalPID::PID steering_pid = {
         .Kp                 = 15.0f,
@@ -37,7 +42,7 @@ namespace Hivemind
         .MIN_ANGLE          = 66,
         .isIR               = false,
         .TURNING_SPEED      = 0,
-        .STRAIGHT_SPEED     = 70,
+        .STRAIGHT_SPEED     = 45,
         .justEscapedIR      = false,
     };
 
@@ -64,27 +69,169 @@ namespace Hivemind
         .MIN_ANGLE          = 66,
         .isIR               = true,
         .TURNING_SPEED      = 40,
-        .STRAIGHT_SPEED     = 55,
+        .STRAIGHT_SPEED     = 55, // 55
         .justEscapedIR      = false
     };
 
+    robotState STATE = TAPE;
+
     void wakeUpHivemind() {
 
-        // Treat lap 1 special
-        if (!doneTurn && digitalRead(START_POSITION) == HIGH) {
-            JumpHandler::turningSequence(&doneTurn, &isGoingStraight, 45.0f);
-            // isLapOne = false;
-        }
-        else if(!doneTurn && digitalRead(START_POSITION) == LOW) {
-            JumpHandler::turningSequence(&doneTurn, &isGoingStraight, -45.0f);
-        }
-        if(doneTurn && !canExitIRFollowing()) {
+        switch (STATE)
+        {
+        case START:
+        {
             digitalWrite(TEST_PIN_LED, LOW);
-            DigitalPID::applyPID(&ir_pid, servo);
+            if(doneTurn) {
+                prevTime = millis();
+                startIRTime = millis();
+                STATE = IR;
+                //TODO add find IR escape condition
+            }
+            else {
+                // if(digitalRead(START_POSITION) == HIGH) {
+                    // Start Position 1
+                    JumpHandler::turningSequence(&doneTurn, &isGoingStraight, 45.0f);
+                // }
+                // else {
+                //     // Start Position 2
+                //     DriverMotors::stopMotorsBoth();
+                //     //TODO if have time, hard code turn without IMU
+                //     // JumpHandler::turningSequence(&doneTurn, &isGoingStraight, -45.0f);
+                // }
+            }
         }
-        else if(doneTurn && steering_pid.justEscapedIR) {
+            break;
+        
+        case IR:
+        {
+            digitalWrite(TEST_PIN_LED, LOW);
+            currentTime = millis();
+
+            if(currentTime - startIRTime > 1600) {
+                prevTime = millis();
+                STATE = COAST;
+            }
+
+            // else if(currentTime - prevTime > 100) {
+            //     // digitalWrite(TEST_PIN_LED, HIGH);
+            //     if(canExitIRFollowing()) {
+            //         // Hivemind::testServo(117);
+            //         // DriverMotors::stopMotorsBoth();
+            //         // delay(50000);
+            //         STATE = COAST;
+            //     }
+            //     prevTime = currentTime;
+            // }
+            else {
+                DigitalPID::applyPID(&ir_pid, servo);
+            }
+        
+            break;
+
+        }
+        
+        case COAST:
+        {
+            currentTime = millis();
+            digitalWrite(TEST_PIN_LED, LOW);
+            // If any of the avg pitch angles say we are not on the ramp, we stay coasting
+            // for(int i = 0 ; i < 3; i++) {
+            if(currentTime - prevTime > 1500) {
+                if(JumpHandler::hasFoundFourTape(false)) {
+                    digitalWrite(TEST_PIN_LED, LOW);
+                    // Hivemind::testServo(95);
+                    // DriverMotors::stopMotorsBoth();
+                    // delay(50000);
+                    prevTime = millis();
+                    STATE = TAPE;
+                }
+                else{
+                    Hivemind::testServo(117);
+                    DriverMotors::upRampDiffLeft();
+                }
+            }
+            // }
+
+            // if(JumpHandler::hasFoundTape(false) && isGoingUpRamp) {
+            // if(isGoingUpRamp) {
+            //     // If you are not in Jump mode and find tape, switch to TAPE
+            //     STATE = TAPE;
+            // }
+            else {
+                Hivemind::testServo(117);
+                DriverMotors::iRDiffLeft();
+            }
+        
+        }
+            break;
+
+        case TAPE:
+        {
+            // currentTime = millis();
+
+            // digitalWrite(TEST_PIN_LED, LOW);
+            // // Hivemind::testServo(90);
+            // // DriverMotors::stopMotorsBoth();
+            // // delay(50000);
+            // // DriverMotors::stopMotorsBoth();
+            // // Hivemind::testServo(95);
+            // // delay(20000);
+            // if(currentTime - prevTime > 1500) {
+            //     if(JumpHandler::hasFoundFourTape(true)) {
+
+            //         digitalWrite(TEST_PIN_LED, HIGH);
+            //         testServo(95);
+            //         DriverMotors::stopMotorsBoth();
+            //         delay(50000);
+            //         doneTurn = false;
+            //         prevTime = millis();
+            //         STATE = JUMP;
+            //     }
+            // }
+            // else {
+            //     DigitalPID::applyPID(&steering_pid, servo);
+            // }
             DigitalPID::applyPID(&steering_pid, servo);
+
         }
+            break;
+
+        case JUMP:
+        {
+            digitalWrite(TEST_PIN_LED, LOW);
+            if(!doneTurn) {
+                JumpHandler::jumpHandler(&doneTurn, &isGoingStraight);
+            }
+            else{
+                STATE = IR;
+            }
+
+        }
+            break;
+
+        default:{}
+            break;
+        }
+
+        // // Treat lap 1 special
+        // if (!doneTurn && digitalRead(START_POSITION) == HIGH) {
+        //     JumpHandler::turningSequence(&doneTurn, &isGoingStraight, 45.0f);
+        //     // isLapOne = false;
+        // }
+        // else if(!doneTurn && digitalRead(START_POSITION) == LOW) {
+        //     JumpHandler::turningSequence(&doneTurn, &isGoingStraight, -45.0f);
+        // }
+        // if(doneTurn && !canExitIRFollowing()) {
+        //     digitalWrite(TEST_PIN_LED, LOW);
+        //     DigitalPID::applyPID(&ir_pid, servo);
+        // }
+        // else if(doneTurn && canExitIRFollowing()) {
+        //     if(!steering_pid.justEscapedIR) {
+        //         digitalWrite(TEST_PIN_LED, HIGH);
+        //     }
+        //     DigitalPID::applyPID(&steering_pid, servo);
+        // }
         // else if(isLapOne && START_POSITION == LOW) {
         //     JumpHandler::turningSequence(doneTurn, false, -90.0f);
         //     isLapOne = false;
@@ -214,12 +361,16 @@ namespace Hivemind
 
     bool canExitIRFollowing () {
 
-        double_t escapeThreshold = 10400;
+        double_t escapeThreshold = 10600;
+
+        // Serial2.print(" L ");
+        // Serial2.print(ir_pid.leftTapeInput);
+        // Serial2.print(" R ");
+        // Serial2.println(ir_pid.rightTapeInput);
 
         if(ir_pid.leftTapeInput > escapeThreshold && 
             ir_pid.rightTapeInput > escapeThreshold){
 
-            steering_pid.prevError = 2.0f;
             steering_pid.justEscapedIR = true;
             // return steering_pid.justEscapedIR;
             return true;

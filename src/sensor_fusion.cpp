@@ -100,23 +100,27 @@ namespace SensorFusion {
     }
     
 
-    bool isOnRamp(float_t *pitchArray, uint8_t pitchCounter, uint8_t sizeOfArray) {
+    bool isOnRamp() {
 
-        const float_t angleThreshold = 9.0f;
+        const float_t angleThreshold = -8.5f;
+        // float_t pitchArray[25] = {0.0f};
+        float_t pitch = 0.0f;
 
-        if(pitchCounter >= sizeOfArray){
-            pitchCounter = 0;
+        for (uint8_t i = 0; i < 25; i++) {
+            // pitchArray[i] = IMUGetData()[1];
+            pitch += IMUGetData()[i];
         }
 
-        pitchArray[pitchCounter] = IMUGetData()[1];
+        pitch /= 25;
 
-        for(int i = 0; i < sizeOfArray; i++){
-            if(pitchArray[i] < angleThreshold){
-                return false;
-            }
+        // Serial2.print("Avg pitch angle: ");
+        // Serial2.println(pitch);
+
+        if (pitch < angleThreshold) {
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     void resetYaw() {

@@ -1,5 +1,7 @@
 namespace Hivemind
 {
+    enum robotState {START, IR, COAST, TAPE, JUMP};
+
     void wakeUpHivemind();
 
     void setupHivemind();

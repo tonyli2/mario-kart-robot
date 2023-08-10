@@ -8,14 +8,18 @@ void setup() {
 }
 
 void loop() {
-  
-  Hivemind::wakeUpHivemind();
+  // Serial2.println(SensorFusion::IMUGetData()[1]);
 
-  // Hivemind::testMotors();
+  // Halt if START_LAP pin is low
+  if(digitalRead(START_LAP) == HIGH){
+    Hivemind::wakeUpHivemind();
+  } else {
+    SensorFusion::IMUGetData();
+  }
 
   // digitalWrite(PC13, LOW);
   // delay(50); 
   // digitalWrite(PC13, HIGH);
-  delay(100);
+  delay(20);
 
 }

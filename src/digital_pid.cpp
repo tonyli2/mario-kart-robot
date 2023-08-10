@@ -1,12 +1,6 @@
 #include <config.h>
 
 namespace DigitalPID {
-
-
-  // TODO figure out where to put these
-  const uint8_t sizeOfPitchArray = 10;
-  float_t pitchArray[sizeOfPitchArray] = {0};
-  uint8_t pitchCounter = 0;
   
   /**
    * @brief Attaching servo to the specified pin
@@ -34,6 +28,7 @@ namespace DigitalPID {
     // If in IR tracking mode, use tape sensor variables (not marker sensor) to store IR readings
     if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftTapeInput), 
                     &(pidType->rightTapeInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
+        
     }
     else if(!pidType->isIR){
       
@@ -105,56 +100,50 @@ namespace DigitalPID {
       */
 
 
-      // if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
+      if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
 
-      //   Serial2.print(" LM BLACK: ");
-      //   Serial2.print(pidType->leftMarkerInput);
+        Serial2.print(" LM BLACK: ");
+        Serial2.print(pidType->leftMarkerInput);
 
-      // }
-      // else{
-      //   Serial2.print(" LM WHITE: ");
-      //   Serial2.print(pidType->leftMarkerInput);
-      // }
+      }
+      else{
+        Serial2.print(" LM WHITE: ");
+        Serial2.print(pidType->leftMarkerInput);
+      }
 
 
-      // if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
-      //   Serial2.print(" LT BLACK: ");
-      //   Serial2.print(pidType->leftTapeInput);
-      // }
-      // else{
-      //   Serial2.print(" LT WHITE: ");
-      //   Serial2.print(pidType->leftTapeInput);
-      // }
-      // if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
-      //   Serial2.print(" RT BLACK: ");
-      //   Serial2.print(pidType->rightTapeInput);
-      // }
-      // else{
-      //   Serial2.print(" RT WHITE: ");
-      //   Serial2.print(pidType->rightTapeInput);
-      // }
+      if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
+        Serial2.print(" LT BLACK: ");
+        Serial2.print(pidType->leftTapeInput);
+      }
+      else{
+        Serial2.print(" LT WHITE: ");
+        Serial2.print(pidType->leftTapeInput);
+      }
+      if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
+        Serial2.print(" RT BLACK: ");
+        Serial2.print(pidType->rightTapeInput);
+      }
+      else{
+        Serial2.print(" RT WHITE: ");
+        Serial2.print(pidType->rightTapeInput);
+      }
 
-      // if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
-      //   Serial2.print(" RM BLACK: ");
-      //   Serial2.println(pidType->rightMarkerInput);
-      // }
-      // else{
-      //   Serial2.print(" RM WHITE: ");
-      //   Serial2.println(pidType->rightMarkerInput);
-      // }
+      if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
+        Serial2.print(" RM BLACK: ");
+        Serial2.println(pidType->rightMarkerInput);
+      }
+      else{
+        Serial2.print(" RM WHITE: ");
+        Serial2.println(pidType->rightMarkerInput);
+      }
       
       if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
               && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
         // All four sensors are off the tape
         // Look at previous error state and magnify it
-        if(pidType->justEscapedIR && SensorFusion::isOnRamp(pitchArray, pitchCounter, sizeOfPitchArray)){
-            pidType->error = 0.0f;
-            pidType->prevError = 0.0f;
-            *applyDifferential = false;
-            pidType->justEscapedIR = false;
-        }
 
-        else if(pidType->prevError < 0){
+        if(pidType->prevError < 0){
           pidType->error = -2.0f;
           *applyDifferential = true;
         }
@@ -293,7 +282,10 @@ namespace DigitalPID {
       // if(pidType->IR_THRESHOLD < 0){
       //   pidType->IR_THRESHOLD = 0;
       // }
-
+      // if(pidType->leftTapeInput == 0 && pidType->rightTapeInput == 0 && pidType->prevError != 0) {
+      //   // If both read zero, but previous error != 0
+      //   pidType->error = pidType->prevError;
+      // }
       if (pidType->leftTapeInput - pidType->rightTapeInput > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
@@ -307,7 +299,6 @@ namespace DigitalPID {
         pidType->error = 0.0f;
         // Serial2.println("STRAIGHT!!! ");
       }
-
     }
     
   }
@@ -327,11 +318,6 @@ namespace DigitalPID {
     } else if(pidType->STRAIGHT_ANGLE + pidType->output < pidType->MIN_ANGLE) {
       pidType->output = pidType->MIN_ANGLE - pidType->STRAIGHT_ANGLE;
     }
-
-    if(pidType->justEscapedIR) {
-      DriverMotors::iRDiffLeft();
-    }
-
     // Process servo angle from PID output
     else if(pidType->output < 0) {
 

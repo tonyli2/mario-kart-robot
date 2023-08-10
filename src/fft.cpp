@@ -30,7 +30,7 @@ namespace FFT {
     */
 
     // const double_t MIN_MAG_INDIVIDUAL = 5000;
-    const double_t MIN_MAG_SUM = 10000;
+    const double_t MIN_MAG_SUM = 8000;
     const double_t DEVIATION = 100;
     const double_t DESIRED_FREQ = 1000;
 
