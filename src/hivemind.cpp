@@ -142,7 +142,7 @@ namespace Hivemind
             }
             else{
                 Hivemind::setServo(steering_pid.MAX_ANGLE);
-                DriverMotors::iRDiffLeft();
+                DriverMotors::diffSteering(25, 75, true);
             }        
         }
             break;
@@ -218,16 +218,6 @@ namespace Hivemind
      */
     void setServo(uint8_t angle) {
         servo.write(angle);
-    }
-
-    /**
-     * @brief Testing function used to drive car straight forward
-     * 
-     */
-    void testMotors(){
-        DriverMotors::startMotorsForwardLeft(90);
-        DriverMotors::startMotorsForwardRight(90);
-        delay(1500);      
     }
 
     /**

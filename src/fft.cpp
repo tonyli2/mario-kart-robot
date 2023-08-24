@@ -2,34 +2,6 @@
 
 namespace FFT {
 
-    /*
-        Plan :
-        We want to sample the frequencies, then look for a specific band
-        centered around 1kHz. Deviation about +-10.
-
-            If the max magnitude within within the frequency band that are above
-            a THRESHOLD experimentally determined, hasFoundBeacon should return false
-            (if the max in that band isnt over it, none of them will be)
-
-            If we see the maximum frequency within the band is above the threshold, then we have
-            found the beacon, and hasFoundBeacon should return true
-
-        Experiment: 
-
-        Determine what the narrowest band around 1kHz. And also what the threshold for the minimum\
-        magnitude of the peak within the band should be. To do this we need to
-        make measurements from the FFT at different angles from the beacon:
-        we record two elements, one for freq other for magnitude corresponding.
-        This will allow us to see what the narrowest bandwith would look like. 
-
-        Then we should look at what the magnitude for the peak within the bandwith is when the beacon is off
-        This will allow us to determine what noise magnitude looks like, and therefore
-        determine what the minimum threshold for the peak should be. Then compare the maximum noise peak magnitude
-        to the lowest 1kHz peak magnitude.
-
-    */
-
-    // const double_t MIN_MAG_INDIVIDUAL = 5000;
     const double_t MIN_MAG_SUM = 8000;
     const double_t DEVIATION = 100;
     const double_t DESIRED_FREQ = 1000;
@@ -89,25 +61,11 @@ namespace FFT {
             freq[i] = interpolatedX;
 
             if(abs(DESIRED_FREQ - interpolatedX) < DEVIATION) {
-                // Serial2.print("           Freq: ");
-                // Serial2.print(interpolatedX);
-                // Serial2.print(":         I M: ");
-                // Serial2.println(real[i]);
                 sumOfMagnitudes += real[i];
             }
         }
 
-        //  if(readPin == PA4) {
-        //         Serial2.print("       Total:");
-        //         Serial2.println(sumOfMagnitudes);
-        // }
-
-        if(sumOfMagnitudes > MIN_MAG_SUM){
-            // if(readPin == PA4) {
-            // Serial2.print("       Total:");
-            // Serial2.println(sumOfMagnitudes);
-            // }
-            
+        if(sumOfMagnitudes > MIN_MAG_SUM){            
             return sumOfMagnitudes;
         }
 
@@ -121,30 +79,12 @@ namespace FFT {
         float_t leftMag = runFFT(leftPin, leftHandler);
         float_t rightMag = runFFT(rightPin, rightHandler);
 
-        // Serial2.print(" L: --------> ");
-        // Serial2.print(leftMag);
-        // Serial2.print(" ||| ");
-        // Serial2.print(rightMag);
-        // Serial2.println("  <-------- R ");
-
         bool leftHasDetected = (leftMag != 0);
         bool rightHasDetected = (rightMag != 0);
 
         if(!leftHasDetected && !rightHasDetected) {
             return false;
         }
-        // else if(leftHasDetected && !rightHasDetected){
-        //     *leftInput = leftMag;
-        //     *rightInput = 0;
-        // }
-        // else if(!leftHasDetected && rightHasDetected){
-        //     *leftInput = 0;
-        //     *rightInput = rightMag;
-        // }
-        // else {
-        //     *leftInput = leftMag;
-        //     *rightInput = rightMag;
-        // }
 
         *leftInput = leftMag;
         *rightInput = rightMag;

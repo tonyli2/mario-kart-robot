@@ -12,11 +12,5 @@ namespace DriverMotors{
 
     void stopMotorsBoth();
 
-    void diffSteeringLeft();
-
-    void diffSteeringRight();
-
-    void iRDiffLeft();
-    
-    void upRampDiffLeft();
+    void diffSteering(uint32_t leftSpeed, uint32_t rightSpeed, bool leftTurn);
 }

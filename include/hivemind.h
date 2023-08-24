@@ -6,9 +6,7 @@ namespace Hivemind
 
     void setupHivemind();
 
-    void testServo(uint8_t angle);
-
-    void testMotors();
+    void setServo(uint8_t angle);
 
     bool canExitIRFollowing();
 

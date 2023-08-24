@@ -72,6 +72,8 @@ namespace JumpHandler {
         uint32_t turnSequenceSpeed = 70;
 
         if(*goStraight == true) {
+
+            // Hard coded start sequence
             Hivemind::setServo(90);
             DriverMotors::startMotorsForwardLeft(turnSequenceSpeed);
             DriverMotors::startMotorsForwardRight(turnSequenceSpeed);
@@ -84,7 +86,7 @@ namespace JumpHandler {
         if(desiredAngle >= 0) {
             if (imuData[2] <= (calcIMUSteering(turnSequenceSpeed, desiredAngle) - 20)) {
                 Hivemind::setServo(117);
-                DriverMotors::diffSteeringLeft();
+                DriverMotors::diffSteering(20, 70, true); //left turn diff
                 *doneTurn = false;
             }
             else {
@@ -98,7 +100,7 @@ namespace JumpHandler {
         else {
             if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
                 Hivemind::setServo(66);
-                DriverMotors::diffSteeringRight();
+                DriverMotors::diffSteering(70, 20, false); //right turn diff
                 *doneTurn = false;
             }
             else {

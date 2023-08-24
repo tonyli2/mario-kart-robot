@@ -8,18 +8,15 @@ void setup() {
 }
 
 void loop() {
-  // Serial2.println(SensorFusion::IMUGetData()[1]);
 
-  // Halt if START_LAP pin is low
+  // Allows us to trigger a "hot start"
   if(digitalRead(START_LAP) == HIGH){
     Hivemind::wakeUpHivemind();
   } else {
+    // Keep IMU data updated
     SensorFusion::IMUGetData();
   }
 
-  // digitalWrite(PC13, LOW);
-  // delay(50); 
-  // digitalWrite(PC13, HIGH);
   delay(20);
 
 }

@@ -28,7 +28,7 @@ namespace DigitalPID {
     // If in IR tracking mode, use tape sensor variables (not marker sensor) to store IR readings
     if(pidType->isIR && FFT::hasFoundBeacon(IR_DETECTOR_LEFT, IR_DETECTOR_RIGHT, &(pidType->leftTapeInput), 
                     &(pidType->rightTapeInput), pidType->leftFFTHandler, pidType->rightFFTHandler)) {  
-        
+        // hasFoundBeacon modifies left and right input
     }
     else if(!pidType->isIR){
       
@@ -62,20 +62,6 @@ namespace DigitalPID {
     pidType->output = pidType->Kp * pidType->error + pidType->Ki * pidType->integral 
                       + pidType->Kd * pidType->derivative;
 
-    // Serial2.print(" Kd * derivative: ");
-    // Serial2.println(pidType-> Kd * pidType->derivative);
-    // Serial2.println("tester");
-
-    // if (pidType->error != pidType->prevError) {
-    //   Serial2.print(pidType->error);
-    //   Serial2.print(", ");
-    //   Serial2.print(pidType->prevError);
-    //   Serial2.print(", ");
-    //   Serial2.print(pidType->dt);
-    //   Serial2.print(", ");
-    //   Serial2.println(pidType->Kd * pidType->derivative);
-    // }
-
     // Update the previous error and time for the next iteration
     pidType->prevError = pidType->error;
     pidType->prevTime = pidType->currTime;
@@ -92,51 +78,13 @@ namespace DigitalPID {
   static void calcError(PID *pidType, bool *applyDifferential) {
     
     if (!pidType->isIR) {   // Tape tracking mode
-        /*
+
+      /*
         -1: Left is off tape
         0: both on tape
         1: right is off tape
         2: both off tape
       */
-
-
-      if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
-
-        Serial2.print(" LM BLACK: ");
-        Serial2.print(pidType->leftMarkerInput);
-
-      }
-      else{
-        Serial2.print(" LM WHITE: ");
-        Serial2.print(pidType->leftMarkerInput);
-      }
-
-
-      if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
-        Serial2.print(" LT BLACK: ");
-        Serial2.print(pidType->leftTapeInput);
-      }
-      else{
-        Serial2.print(" LT WHITE: ");
-        Serial2.print(pidType->leftTapeInput);
-      }
-      if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
-        Serial2.print(" RT BLACK: ");
-        Serial2.print(pidType->rightTapeInput);
-      }
-      else{
-        Serial2.print(" RT WHITE: ");
-        Serial2.print(pidType->rightTapeInput);
-      }
-
-      if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
-        Serial2.print(" RM BLACK: ");
-        Serial2.println(pidType->rightMarkerInput);
-      }
-      else{
-        Serial2.print(" RM WHITE: ");
-        Serial2.println(pidType->rightMarkerInput);
-      }
       
       if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
               && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
@@ -202,25 +150,6 @@ namespace DigitalPID {
         pidType->justEscapedIR = false;
         
       }
-      // else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
-      //         && pidType->rightTapeInput >= pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
-      //   // Intermediate state where only left tape reads black
-      //   // Turn left
-      //   pidType->error = 0.5f;
-      //   *applyDifferential = false;
-      //   pidType->justEscapedIR = false;
-      // }
-      // else if(pidType->leftMarkerInput >= pidType->LM_THRESHOLD && pidType->leftTapeInput >= pidType->L_THRESHOLD
-      //         && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput >= pidType->RM_THRESHOLD) {
-      //   // Intermediate state where only right tape reads black
-      //   // TURN right
-
-      //   pidType->error = -0.5f;
-      //   *applyDifferential = false;
-      //   pidType->justEscapedIR = false;
-
-      // }
-
       else if(pidType->leftMarkerInput < pidType->LM_THRESHOLD && pidType->leftTapeInput < pidType->L_THRESHOLD
               && pidType->rightTapeInput < pidType->R_THRESHOLD && pidType->rightMarkerInput < pidType->RM_THRESHOLD) {
         
@@ -231,73 +160,22 @@ namespace DigitalPID {
       else{
         pidType->error = pidType->prevError;          
       }
-
-      // if(pidType->leftMarkerInput < pidType->LM_THRESHOLD){
-
-      //   Serial2.print(" LM: ");
-      //   Serial2.print("BLACK");
-
-      // }
-      // else{
-      //   Serial2.print(" LM: ");
-      //   Serial2.print("WHITE");
-      // }
-
-
-      // if(pidType->leftTapeInput < pidType -> L_THRESHOLD){
-      //   Serial2.print(" LT: ");
-      //   Serial2.print(" BLACK ");
-      // }
-      // else{
-      //   Serial2.print(" LT: ");
-      //   Serial2.print(" WHITE ");
-
-      // }
-      // if(pidType->rightTapeInput < pidType -> R_THRESHOLD){
-      //   Serial2.print(" RT: ");
-      //   Serial2.print(" BLACK ");
-      // }
-      // else{
-      //   Serial2.print(" RT: ");
-      //   Serial2.print(" WHITE ");
-      // }
-      // if(pidType->rightMarkerInput < pidType -> RM_THRESHOLD){
-      //   Serial2.print(" RM: ");
-      //   Serial2.println("BLA`CK");
-      // }
-      // else{
-      //   Serial2.print(" RM: ");
-      //   Serial2.println(" WHITE ");
-      // }
-
     } 
     
     else { // IR tracking mode
 
-      // float_t averageAmplitude = (*left + *right) * 0.5f;
-
-      //Dynamically change IR Threshold
-      //-0.568f * averageAmplitude + 8300.0f;
-
-      // if(pidType->IR_THRESHOLD < 0){
-      //   pidType->IR_THRESHOLD = 0;
-      // }
-      // if(pidType->leftTapeInput == 0 && pidType->rightTapeInput == 0 && pidType->prevError != 0) {
-      //   // If both read zero, but previous error != 0
-      //   pidType->error = pidType->prevError;
-      // }
       if (pidType->leftTapeInput - pidType->rightTapeInput > pidType->IR_THRESHOLD) {
         // TURN left
         pidType->error = 1.0f;
-        // Serial2.println("TURN LEFT!!! ");
+        
       } else if (pidType->rightTapeInput - pidType->leftTapeInput > pidType->IR_THRESHOLD) {
         // TURN right
         pidType->error = -1.0f;
-        // Serial2.println("TURN RIGHT!!! ");
+        
       } else if (abs(pidType->leftTapeInput - pidType->rightTapeInput) < pidType->IR_THRESHOLD) {
         // GO STRAIGHT
         pidType->error = 0.0f;
-        // Serial2.println("STRAIGHT!!! ");
+        
       }
     }
     
@@ -321,40 +199,30 @@ namespace DigitalPID {
     // Process servo angle from PID output
     else if(pidType->output < 0) {
 
-      // duty_cycle = 20;
       if(!applyDifferential){
         DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
         DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
-      else { //Apply differential in the back
-        DriverMotors::diffSteeringRight();
-        // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED * 0.6);
-        // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED);
+      else { //Apply differential for right turn 
+        DriverMotors::diffSteering(70, 20, false);
       }
 
       servo.write(pidType->STRAIGHT_ANGLE + pidType->output);
 
     } else if(pidType->output > 0) {
 
-      // duty_cycle = 20;
       if(!applyDifferential){
         DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
         DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
       }
-      else { //Apply differential in the back
-        DriverMotors::diffSteeringLeft();
-        // DriverMotors::startMotorsForwardRight(pidType->TURNING_SPEED);
-        // DriverMotors::startMotorsForwardLeft(pidType->TURNING_SPEED * 0.6);
+      else { //Apply differential for left turn
+        DriverMotors::diffSteering(20, 70, true);
       }
       servo.write(pidType->STRAIGHT_ANGLE + pidType->output);
 
     } else {
-      // duty_cycle = 40;
-
       DriverMotors::startMotorsForwardRight(pidType->STRAIGHT_SPEED);
       DriverMotors::startMotorsForwardLeft(pidType->STRAIGHT_SPEED);
-
-
       servo.write(pidType->STRAIGHT_ANGLE);
     }
   }
