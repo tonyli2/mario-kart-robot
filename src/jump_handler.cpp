@@ -39,7 +39,7 @@ namespace JumpHandler {
             return readyToJump;
         }
         else {
-            // Coasting state
+            // Coasting mode
             bool seenTape = 
                 leftMarker < LM_THRESHOLD || 
                 rightMarker < RM_THRESHOLD ||
@@ -51,35 +51,19 @@ namespace JumpHandler {
     }
 
     /**
-     * @brief sets up IRQ Handler for Marker Reader
-     * reflectance sensors
-     * 
-     */
-    void setupJumpHandler() {
-
-        //TODO remove
-        // attachInterrupt(JUMP_PIN, jumpHandler, RISING);
-    }
-
-    /**
      * @brief interrupt handler which processes logic 
      * required before and after bridge jump
      * 
      */
     void jumpHandler(bool *doneTurn, bool *goStraight) {
         
-        // TODO code for managing bridge jump here
-        // DriverMotors::stopMotorsBoth();
 
-        // 1. Reset IMU yaw angle
-        SensorFusion::resetYaw();
-
-        // 2. Go Straight off bridge
+        // Go Straight off bridge (hard coded part)
         DriverMotors::startMotorsForwardLeft(70);
         DriverMotors::startMotorsForwardRight(70);
+        delay(150);
 
-        delay(500);
-        // 3. Trigger IMU sequence
+        // Trigger IMU sequence go under bridge
         turningSequence(doneTurn, goStraight, 180);
     }
 
@@ -88,7 +72,7 @@ namespace JumpHandler {
         uint32_t turnSequenceSpeed = 70;
 
         if(*goStraight == true) {
-            Hivemind::testServo(90);
+            Hivemind::setServo(90);
             DriverMotors::startMotorsForwardLeft(turnSequenceSpeed);
             DriverMotors::startMotorsForwardRight(turnSequenceSpeed);
             delay(900);
@@ -96,43 +80,34 @@ namespace JumpHandler {
         }
 
         float_t * imuData = SensorFusion::IMUGetData();
-        // Serial2.print("Yaw angle: ");
-        // Serial2.println(imuData[2]);
-
-        // Serial2.print("Roll ");
-        // Serial2.print(imuData[0]);
-        // Serial2.print("    Pitch ");
-        // Serial2.print(imuData[1]);
-        // Serial2.print("    Yaw ");
-        // Serial2.println(imuData[2]);
-
+        
         if(desiredAngle >= 0) {
             if (imuData[2] <= (calcIMUSteering(turnSequenceSpeed, desiredAngle) - 20)) {
-                Hivemind::testServo(117);
+                Hivemind::setServo(117);
                 DriverMotors::diffSteeringLeft();
                 *doneTurn = false;
             }
             else {
-                Hivemind::testServo(95);
+                Hivemind::setServo(95);
                 DriverMotors::startMotorsForwardLeft(35);
                 DriverMotors::startMotorsForwardRight(35);
                 *doneTurn = true;
             }
         }
-        // TODO add back if ready for start position 2
-        // else {
-        //     if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
-        //         Hivemind::testServo(66);
-        //         DriverMotors::diffSteeringRight();
-        //         *doneTurn = false;
-        //     }
-        //     else {
-        //         Hivemind::testServo(95);
-        //         DriverMotors::startMotorsForwardLeft(35);
-        //         DriverMotors::startMotorsForwardRight(35);
-        //         *doneTurn = true;
-        //     }
-        // }
+        // For start position 2
+        else {
+            if (imuData[2] >= calcIMUSteering(turnSequenceSpeed, desiredAngle)) {
+                Hivemind::setServo(66);
+                DriverMotors::diffSteeringRight();
+                *doneTurn = false;
+            }
+            else {
+                Hivemind::setServo(95);
+                DriverMotors::startMotorsForwardLeft(35);
+                DriverMotors::startMotorsForwardRight(35);
+                *doneTurn = true;
+            }
+        }
     }
 
     float_t calcIMUSteering(uint32_t speed, float_t desiredAngle) {

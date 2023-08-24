@@ -99,22 +99,23 @@ namespace SensorFusion {
         return sensor.theta_final;
     }
     
-
+    /**
+     * @brief Reads the average pitch angle over 25 samples
+     * and determines whether the robot is going up a ramp.
+     * 
+     * @return true, robot is going up ramp 
+     * @return false, robot is NOT going up ramp 
+     */
     bool isOnRamp() {
 
         const float_t angleThreshold = -8.5f;
-        // float_t pitchArray[25] = {0.0f};
         float_t pitch = 0.0f;
 
         for (uint8_t i = 0; i < 25; i++) {
-            // pitchArray[i] = IMUGetData()[1];
             pitch += IMUGetData()[i];
         }
 
         pitch /= 25;
-
-        // Serial2.print("Avg pitch angle: ");
-        // Serial2.println(pitch);
 
         if (pitch < angleThreshold) {
             return true;

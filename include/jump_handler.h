@@ -10,8 +10,6 @@ namespace JumpHandler {
 
     bool hasFoundFourTape(bool isJumping);
 
-    void setupJumpHandler();
-
     void jumpHandler(bool *doneTurn, bool *isGoingStraight);
 
     void turningSequence(bool *doneTurn, bool *goStraight, float_t desiredAngle);
